@@ -7,12 +7,12 @@ import javax.swing.*;
 import java.awt.*;
 
 public class LoginPanel extends JPanel {
-    private JFrame parentFrame;
+    private MainFrame mainFrame;
     private JTextField tfID;
     private JButton btnLogin;
 
-    public LoginPanel(JFrame parentFrame) {
-        this.parentFrame = parentFrame;
+    public LoginPanel(MainFrame mainFrame) { // Constructor nhận MainFrame
+        this.mainFrame = mainFrame;
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -38,16 +38,16 @@ public class LoginPanel extends JPanel {
         Student student = DataManager.findStudentByID(id);
         if (student != null) {
             // Đăng nhập với tư cách sinh viên
+            DataManager.currentLoggedInID = id; // Lưu ID hiện tại
             JOptionPane.showMessageDialog(this, "Đăng nhập thành công với tư cách sinh viên.");
-            parentFrame.setContentPane(new StudentInteractionPanel(student));
-            parentFrame.revalidate();
+            mainFrame.showTabsAfterLogin(false); // false: không phải giáo viên
         } else {
             Teacher teacher = DataManager.findTeacherByID(id);
             if (teacher != null) {
                 // Đăng nhập với tư cách giáo viên
+                DataManager.currentLoggedInID = id; // Lưu ID hiện tại
                 JOptionPane.showMessageDialog(this, "Đăng nhập thành công với tư cách giáo viên.");
-                parentFrame.setContentPane(new TeacherInteractionPanel(teacher));
-                parentFrame.revalidate();
+                mainFrame.showTabsAfterLogin(true); // true: là giáo viên
             } else {
                 JOptionPane.showMessageDialog(this, "ID không tồn tại.");
             }

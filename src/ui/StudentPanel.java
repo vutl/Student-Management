@@ -107,8 +107,7 @@ public class StudentPanel extends JPanel {
             }
         }
 
-        int defaultCredits = 20; // Số tín chỉ cố định cho sinh viên mới
-        Student student = new Student(studentID, name, age, email, defaultCredits);
+        Student student = new Student(studentID, name, age, email);
         DataManager.studentList.add(student);
         tableModel.addRow(new Object[]{studentID, name, age, email});
         DataManager.saveData();
@@ -134,6 +133,14 @@ public class StudentPanel extends JPanel {
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Tuổi phải là số nguyên.");
                 return;
+            }
+
+            // Kiểm tra mã sinh viên không trùng với các sinh viên khác
+            for (int i = 0; i < DataManager.studentList.size(); i++) {
+                if (i != selectedRow && DataManager.studentList.get(i).getID().equals(studentID)) {
+                    JOptionPane.showMessageDialog(this, "Mã sinh viên đã tồn tại.");
+                    return;
+                }
             }
 
             Student student = DataManager.studentList.get(selectedRow);

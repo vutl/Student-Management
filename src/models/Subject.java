@@ -16,52 +16,33 @@ public class Subject {
         this.classSections = new ArrayList<>();
     }
 
-    // Getter và Setter cho subjectID
+    // Getters và Setters
     public String getSubjectID() {
         return subjectID;
     }
 
-    public void setSubjectID(String subjectID) {
-        this.subjectID = subjectID;
-    }
-
-    // Getter và Setter cho title
     public String getTitle() {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    // Getter và Setter cho credit
     public int getCredit() {
         return credit;
     }
 
-    public void setCredit(int credit) {
-        this.credit = credit;
-    }
-
-    // Getter và Setter cho classSections
     public List<ClassSection> getClassSections() {
         return classSections;
     }
 
-    public void setClassSections(List<ClassSection> classSections) {
-        this.classSections = classSections;
+    public void addClassSection(ClassSection cs) {
+        classSections.add(cs);
     }
 
-    public void addClassSection(ClassSection classSection) {
-        this.classSections.add(classSection);
-    }
-
-    public void removeClassSection(ClassSection classSection) {
-        this.classSections.remove(classSection);
+    public void removeClassSection(ClassSection cs) {
+        classSections.remove(cs);
     }
 
     @Override
     public String toString() {
-        return title + " (" + subjectID + ")";
+        return title + " (" + credit + " tín chỉ)";
     }
 }

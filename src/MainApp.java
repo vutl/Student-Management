@@ -1,13 +1,13 @@
+import javax.swing.SwingUtilities;
 import ui.MainFrame;
 import utils.DataManager;
 
 public class MainApp {
     public static void main(String[] args) {
-        // Tải dữ liệu từ file
+        // Tải dữ liệu trước khi khởi chạy giao diện
         DataManager.loadData();
 
-        // Khởi chạy giao diện người dùng
-        javax.swing.SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             new MainFrame();
         });
     }

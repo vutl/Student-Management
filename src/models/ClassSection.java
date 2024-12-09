@@ -9,6 +9,7 @@ public class ClassSection {
     private Teacher teacher;
     private int credit;
     private List<Student> enrolledStudents;
+    private List<ClassSession> classSessions;
 
     public ClassSection(String classCode, Subject subject, Teacher teacher, int credit) {
         this.classCode = classCode;
@@ -16,63 +17,48 @@ public class ClassSection {
         this.teacher = teacher;
         this.credit = credit;
         this.enrolledStudents = new ArrayList<>();
+        this.classSessions = new ArrayList<>();
     }
 
-    // Getter và Setter cho classCode
+    // Getters và Setters
     public String getClassCode() {
         return classCode;
     }
 
-    public void setClassCode(String classCode) {
-        this.classCode = classCode;
-    }
-
-    // Getter và Setter cho subject
     public Subject getSubject() {
         return subject;
     }
 
-    public void setSubject(Subject subject) {
-        this.subject = subject;
-    }
-
-    // Getter và Setter cho teacher
     public Teacher getTeacher() {
         return teacher;
     }
 
-    public void setTeacher(Teacher teacher) {
-        this.teacher = teacher;
-    }
-
-    // Getter và Setter cho credit
     public int getCredit() {
         return credit;
     }
 
-    public void setCredit(int credit) {
-        this.credit = credit;
-    }
-
-    // Getter và Setter cho enrolledStudents
     public List<Student> getEnrolledStudents() {
         return enrolledStudents;
     }
 
-    public void setEnrolledStudents(List<Student> enrolledStudents) {
-        this.enrolledStudents = enrolledStudents;
+    public void addStudent(Student s) {
+        enrolledStudents.add(s);
     }
 
-    public void addStudent(Student student) {
-        this.enrolledStudents.add(student);
+    public void removeStudent(Student s) {
+        enrolledStudents.remove(s);
     }
 
-    public void removeStudent(Student student) {
-        this.enrolledStudents.remove(student);
+    public List<ClassSession> getClassSessions() {
+        return classSessions;
+    }
+
+    public void addClassSession(ClassSession session) {
+        classSessions.add(session);
     }
 
     @Override
     public String toString() {
-        return classCode + " - " + subject.getTitle() + " - " + teacher.getName();
+        return classCode + " - " + subject.getTitle();
     }
 }

@@ -7,145 +7,74 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataManager {
-    public static List<Student> studentList = new ArrayList<>();
     public static List<Teacher> teacherList = new ArrayList<>();
+    public static List<Student> studentList = new ArrayList<>();
     public static List<Subject> subjectList = new ArrayList<>();
     public static List<ClassSection> classSectionList = new ArrayList<>();
+    public static String currentLoggedInID = null; // Biến lưu trữ ID hiện tại
 
-    // Phương thức để lưu dữ liệu vào file
-    public static void saveData() {
-        saveTeachers();
-        saveStudents();
-        saveSubjects();
-        saveClassSections();
-    }
-
-    private static void saveTeachers() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
-            for (Teacher t : teacherList) {
-                bw.write(t.getID() + "," + t.getName() + "," + t.getDepartment() + "," + t.getEmail());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void saveStudents() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("students.txt"))) {
-            for (Student s : studentList) {
-                bw.write(s.getID() + "," + s.getName() + "," + s.getAge() + "," + s.getEmail() + "," + s.getRemainingCredits());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void saveSubjects() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("subjects.txt"))) {
-            for (Subject s : subjectList) {
-                bw.write(s.getSubjectID() + "," + s.getTitle() + "," + s.getCredit());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void saveClassSections() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt"))) {
-            for (ClassSection cs : classSectionList) {
-                bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Phương thức để tải dữ liệu từ file
+    // Phương thức loadData() để tải dữ liệu từ file
     public static void loadData() {
-        loadTeachers();      // Load teachers trước để có thể liên kết với classes
-        loadSubjects();      // Load subjects trước khi load classes
-        loadStudents();      // Load students
-        loadClassSections(); // Load classes
-    }
+        // Ví dụ: tải dữ liệu từ file teachers.txt, students.txt, subjects.txt, etc.
+        // Đây chỉ là ví dụ đơn giản, bạn cần triển khai phương thức này phù hợp với định dạng file của bạn.
 
-    private static void loadTeachers() {
-        File file = new File("teachers.txt");
-        if (!file.exists()) return;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        // Load Teachers
+        try (BufferedReader br = new BufferedReader(new FileReader("teachers.txt"))) {
             String line;
-            teacherList.clear();
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 4) {
-                    Teacher t = new Teacher(data[0], data[1], data[2], data[3]);
-                    teacherList.add(t);
+                String[] parts = line.split(",");
+                if (parts.length >= 3) {
+                    Teacher teacher = new Teacher(parts[0], parts[1], parts[2]);
+                    teacherList.add(teacher);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Không thể tải dữ liệu giáo viên: " + e.getMessage());
         }
-    }
 
-    private static void loadStudents() {
-        File file = new File("students.txt");
-        if (!file.exists()) return;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        // Load Students
+        try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
             String line;
-            studentList.clear();
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 4) {
-                    // Đặt remainingCredits là 20
-                    Student s = new Student(data[0], data[1], Integer.parseInt(data[2]), data[3], 20);
-                    studentList.add(s);
+                String[] parts = line.split(",");
+                if (parts.length >= 4) {
+                    Student student = new Student(parts[0], parts[1], parts[2], Integer.parseInt(parts[3]));
+                    studentList.add(student);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Không thể tải dữ liệu sinh viên: " + e.getMessage());
         }
-    }
 
-
-    private static void loadSubjects() {
-        File file = new File("subjects.txt");
-        if (!file.exists()) return;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        // Load Subjects
+        try (BufferedReader br = new BufferedReader(new FileReader("subjects.txt"))) {
             String line;
-            subjectList.clear();
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 3) {
-                    Subject s = new Subject(data[0], data[1], Integer.parseInt(data[2]));
-                    subjectList.add(s);
+                String[] parts = line.split(",");
+                if (parts.length >= 3) {
+                    Subject subject = new Subject(parts[0], parts[1], Integer.parseInt(parts[2]));
+                    subjectList.add(subject);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Không thể tải dữ liệu môn học: " + e.getMessage());
         }
-    }
 
-    private static void loadClassSections() {
-        File file = new File("classes.txt");
-        if (!file.exists()) return;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        // Load ClassSections
+        try (BufferedReader br = new BufferedReader(new FileReader("classes.txt"))) {
             String line;
-            classSectionList.clear();
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(",");
-                if (data.length >= 4) {
-                    Subject subject = findSubjectByID(data[1]);
-                    Teacher teacher = findTeacherByID(data[2]);
-                    int credit = Integer.parseInt(data[3]);
+                String[] parts = line.split(",");
+                if (parts.length >= 4) {
+                    String classCode = parts[0];
+                    String subjectID = parts[1];
+                    String teacherID = parts[2];
+                    int credit = Integer.parseInt(parts[3]);
+
+                    Subject subject = findSubjectByID(subjectID);
+                    Teacher teacher = findTeacherByID(teacherID);
                     if (subject != null && teacher != null) {
-                        ClassSection cs = new ClassSection(data[0], subject, teacher, credit);
+                        ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
                         classSectionList.add(cs);
                         subject.addClassSection(cs);
                         teacher.addClass(cs);
@@ -153,29 +82,83 @@ public class DataManager {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Không thể tải dữ liệu lớp học: " + e.getMessage());
         }
+
+        // Bạn có thể thêm việc load các dữ liệu khác như enrollments, class_sessions, etc.
     }
 
-    // Các phương thức hỗ trợ
-    public static Subject findSubjectByID(String id) {
-        for (Subject s : subjectList) {
-            if (s.getSubjectID().equals(id)) {
-                return s;
+    public static void calculateGrades() {
+        for (ClassSection cs : classSectionList) {
+            for (Student s : cs.getEnrolledStudents()) {
+                int absentCount = 0;
+                for (ClassSession session : cs.getClassSessions()) {
+                    Boolean isPresent = session.getAttendanceRecords().get(s.getID());
+                    if (isPresent != null && !isPresent) {
+                        absentCount++;
+                    }
+                }
+
+                // Quy định: Trượt nếu vắng mặt >=5 buổi (ví dụ)
+                if (absentCount >= 5) {
+                    s.getFailedSubjects().add(cs.getSubject().getSubjectID());
+                } else {
+                    s.getPassedSubjects().add(cs.getSubject().getSubjectID());
+                }
             }
         }
-        return null;
+        saveData(); // Lưu dữ liệu sau khi tính điểm
     }
 
-    public static Teacher findTeacherByID(String id) {
-        for (Teacher t : teacherList) {
-            if (t.getID().equals(id)) {
-                return t;
+    // Phương thức saveData() để lưu dữ liệu vào file
+    public static void saveData() {
+        // Tương tự như loadData, bạn cần triển khai phương thức này phù hợp với định dạng file của bạn.
+        // Ví dụ: lưu Teachers, Students, Subjects, ClassSections, etc.
+
+        // Save Teachers
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
+            for (Teacher t : teacherList) {
+                bw.write(t.getID() + "," + t.getName() + "," + t.getEmail());
+                bw.newLine();
             }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu giáo viên: " + e.getMessage());
         }
-        return null;
+
+        // Save Students
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("students.txt"))) {
+            for (Student s : studentList) {
+                bw.write(s.getID() + "," + s.getName() + "," + s.getEmail() + "," + s.getRemainingCredits());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu sinh viên: " + e.getMessage());
+        }
+
+        // Save Subjects
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("subjects.txt"))) {
+            for (Subject s : subjectList) {
+                bw.write(s.getSubjectID() + "," + s.getTitle() + "," + s.getCredit());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu môn học: " + e.getMessage());
+        }
+
+        // Save ClassSections
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt"))) {
+            for (ClassSection cs : classSectionList) {
+                bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu lớp học: " + e.getMessage());
+        }
+
+        // Bạn có thể thêm việc lưu các dữ liệu khác như enrollments, class_sessions, etc.
     }
 
+    // Phương thức tìm sinh viên theo ID
     public static Student findStudentByID(String id) {
         for (Student s : studentList) {
             if (s.getID().equals(id)) {
@@ -185,12 +168,24 @@ public class DataManager {
         return null;
     }
 
-    public static ClassSection findClassSectionByCode(String code) {
-        for (ClassSection cs : classSectionList) {
-            if (cs.getClassCode().equals(code)) {
-                return cs;
+    // Phương thức tìm giáo viên theo ID
+    public static Teacher findTeacherByID(String id) {
+        for (Teacher t : teacherList) {
+            if (t.getID().equals(id)) {
+                return t;
             }
         }
         return null;
     }
+
+    // Phương thức tìm môn học theo ID
+    public static Subject findSubjectByID(String id) {
+        for (Subject s : subjectList) {
+            if (s.getSubjectID().equals(id)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
 }

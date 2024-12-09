@@ -119,6 +119,14 @@ public class TeacherManagementPanel extends JPanel {
                 return;
             }
 
+            // Kiểm tra mã giáo viên không trùng với các giáo viên khác
+            for (int i = 0; i < DataManager.teacherList.size(); i++) {
+                if (i != selectedRow && DataManager.teacherList.get(i).getID().equals(teacherID)) {
+                    JOptionPane.showMessageDialog(this, "Mã giáo viên đã tồn tại.");
+                    return;
+                }
+            }
+
             Teacher teacher = DataManager.teacherList.get(selectedRow);
             teacher.setID(teacherID);
             teacher.setName(name);
@@ -139,7 +147,7 @@ public class TeacherManagementPanel extends JPanel {
         if (selectedRow >= 0) {
             Teacher teacher = DataManager.teacherList.get(selectedRow);
             if (!teacher.getTeachingClasses().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Không thể xóa giáo viên đang có lớp học.");
+                JOptionPane.showMessageDialog(this, "Không thể xóa giáo viên đang dạy lớp học.");
                 return;
             }
             DataManager.teacherList.remove(selectedRow);

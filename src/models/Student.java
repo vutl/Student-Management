@@ -3,66 +3,50 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Student implements PersonInterface {
-    private String studentID;
+public class Student {
+    private String ID;
     private String name;
-    private int age;
     private String email;
-    private int remainingCredits;
     private List<ClassSection> enrolledClasses;
+    private int remainingCredits;
+    private List<String> passedSubjects;
+    private List<String> failedSubjects;
 
-    public Student(String studentID, String name, int age, String email, int remainingCredits) {
-        this.studentID = studentID;
+    public Student(String ID, String name, String email, int remainingCredits) {
+        this.ID = ID;
         this.name = name;
-        this.age = age;
         this.email = email;
         this.remainingCredits = remainingCredits;
         this.enrolledClasses = new ArrayList<>();
+        this.passedSubjects = new ArrayList<>();
+        this.failedSubjects = new ArrayList<>();
     }
 
-    // Getter và Setter cho studentID
-    @Override
+    // Getters và Setters
     public String getID() {
-        return studentID;
+        return ID;
     }
 
-    @Override
-    public void setID(String studentID) {
-        this.studentID = studentID;
-    }
-
-    // Getter và Setter cho name
-    @Override
     public String getName() {
         return name;
     }
 
-    @Override
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    // Getter và Setter cho email
-    @Override
     public String getEmail() {
         return email;
     }
 
-    @Override
-    public void setEmail(String email) {
-        this.email = email;
+    public List<ClassSection> getEnrolledClasses() {
+        return enrolledClasses;
     }
 
-    // Getter và Setter cho age
-    public int getAge() {
-        return age;
+    public void addClass(ClassSection cs) {
+        enrolledClasses.add(cs);
     }
 
-    public void setAge(int age) {
-        this.age = age;
+    public void removeClass(ClassSection cs) {
+        enrolledClasses.remove(cs);
     }
 
-    // Getter và Setter cho remainingCredits
     public int getRemainingCredits() {
         return remainingCredits;
     }
@@ -71,25 +55,16 @@ public class Student implements PersonInterface {
         this.remainingCredits = remainingCredits;
     }
 
-    // Getter và Setter cho enrolledClasses
-    public List<ClassSection> getEnrolledClasses() {
-        return enrolledClasses;
+    public List<String> getPassedSubjects() {
+        return passedSubjects;
     }
 
-    public void setEnrolledClasses(List<ClassSection> enrolledClasses) {
-        this.enrolledClasses = enrolledClasses;
-    }
-
-    public void addClass(ClassSection classSection) {
-        this.enrolledClasses.add(classSection);
-    }
-
-    public void removeClass(ClassSection classSection) {
-        this.enrolledClasses.remove(classSection);
+    public List<String> getFailedSubjects() {
+        return failedSubjects;
     }
 
     @Override
     public String toString() {
-        return name + " (" + studentID + ")";
+        return name + " (" + ID + ")";
     }
 }
