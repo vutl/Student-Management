@@ -3,7 +3,7 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Teacher {
+public class Teacher implements PersonInterface {
     private String ID;
     private String name;
     private String email;
@@ -16,17 +16,34 @@ public class Teacher {
         this.teachingClasses = new ArrayList<>();
     }
 
-    // Getters và Setters
+    @Override
     public String getID() {
         return ID;
     }
 
+    @Override
+    public void setID(String id) {
+        this.ID = id;
+    }
+
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
     public String getEmail() {
         return email;
+    }
+
+    @Override
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public List<ClassSection> getTeachingClasses() {

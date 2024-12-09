@@ -1,13 +1,10 @@
 package ui;
 
-import models.*;
-import utils.DataManager;
-
+import java.awt.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
-import java.time.format.DateTimeFormatter;
+import models.*;
+import utils.DataManager;
 
 public class ClassSessionPanel extends JPanel {
     private ClassSection classSection;
@@ -17,14 +14,11 @@ public class ClassSessionPanel extends JPanel {
 
     private JButton btnSaveAttendance;
 
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-
     public ClassSessionPanel(ClassSection classSection, ClassSession session) {
         this.classSection = classSection;
         this.session = session;
         setLayout(new BorderLayout());
 
-        // Bảng hiển thị điểm danh
         String[] columnNames = {"Mã SV", "Tên", "Có mặt"};
         attendanceTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -35,13 +29,12 @@ public class ClassSessionPanel extends JPanel {
 
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 2; // Chỉ cột "Có mặt" có thể chỉnh sửa
+                return column == 2; 
             }
         };
         attendanceTable = new JTable(attendanceTableModel);
         loadAttendance();
 
-        // Nút lưu điểm danh
         btnSaveAttendance = new JButton("Lưu điểm danh");
         btnSaveAttendance.addActionListener(e -> saveAttendance());
 
@@ -66,7 +59,7 @@ public class ClassSessionPanel extends JPanel {
         DataManager.saveData();
         JOptionPane.showMessageDialog(this, "Đã lưu điểm danh.");
 
-        // Kiểm tra nếu đã hết 15 buổi học, tính điểm và cập nhật trạng thái
+        // Nếu đã đủ 15 buổi, tính điểm
         if (classSection.getClassSessions().size() == 15) {
             DataManager.calculateGrades();
             JOptionPane.showMessageDialog(this, "Đã tính điểm và cập nhật trạng thái môn học.");

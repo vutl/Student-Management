@@ -17,7 +17,6 @@ public class ClassSession {
         this.attendanceRecords = new HashMap<>();
     }
 
-    // Getters và Setters
     public String getSessionID() {
         return sessionID;
     }

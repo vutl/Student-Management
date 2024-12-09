@@ -1,12 +1,11 @@
 package ui;
 
-import models.Teacher;
-import utils.DataManager;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import models.Teacher;
+import utils.DataManager;
 
 public class TeacherManagementPanel extends JPanel {
     private JTable table;
@@ -18,19 +17,16 @@ public class TeacherManagementPanel extends JPanel {
     public TeacherManagementPanel() {
         setLayout(new BorderLayout());
 
-        // Tạo bảng hiển thị giáo viên
         String[] columnNames = {"Mã GV", "Tên", "Khoa", "Email"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
 
-        // Tải dữ liệu từ DataManager vào bảng
         loadTeachers();
 
-        // Panel nhập liệu
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         tfTeacherID = new JTextField();
         tfName = new JTextField();
-        tfDepartment = new JTextField();
+        tfDepartment = new JTextField(); // Không có trong model
         tfEmail = new JTextField();
 
         inputPanel.add(new JLabel("Mã giáo viên:"));
@@ -38,11 +34,10 @@ public class TeacherManagementPanel extends JPanel {
         inputPanel.add(new JLabel("Tên:"));
         inputPanel.add(tfName);
         inputPanel.add(new JLabel("Khoa:"));
-        inputPanel.add(tfDepartment);
+        inputPanel.add(tfDepartment); // Chỉ hiển thị trống
         inputPanel.add(new JLabel("Email:"));
         inputPanel.add(tfEmail);
 
-        // Nút thao tác
         btnAdd = new JButton("Thêm");
         btnUpdate = new JButton("Sửa");
         btnDelete = new JButton("Xóa");
@@ -56,12 +51,10 @@ public class TeacherManagementPanel extends JPanel {
         btnUpdate.addActionListener(e -> updateTeacher());
         btnDelete.addActionListener(e -> deleteTeacher());
 
-        // Thêm các thành phần vào panel
         add(new JScrollPane(table), BorderLayout.CENTER);
         add(inputPanel, BorderLayout.NORTH);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Sự kiện khi chọn một hàng trong bảng
         table.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int selectedRow = table.getSelectedRow();
@@ -76,7 +69,7 @@ public class TeacherManagementPanel extends JPanel {
     private void loadTeachers() {
         tableModel.setRowCount(0);
         for (Teacher t : DataManager.teacherList) {
-            tableModel.addRow(new Object[]{t.getID(), t.getName(), t.getDepartment(), t.getEmail()});
+            tableModel.addRow(new Object[]{t.getID(), t.getName(), "", t.getEmail()});
         }
     }
 
@@ -86,12 +79,11 @@ public class TeacherManagementPanel extends JPanel {
         String department = tfDepartment.getText().trim();
         String email = tfEmail.getText().trim();
 
-        if (teacherID.isEmpty() || name.isEmpty() || department.isEmpty() || email.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
+        if (teacherID.isEmpty() || name.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đủ Mã GV, Tên, Email (Khoa không bắt buộc).");
             return;
         }
 
-        // Kiểm tra mã giáo viên đã tồn tại
         for (Teacher t : DataManager.teacherList) {
             if (t.getID().equals(teacherID)) {
                 JOptionPane.showMessageDialog(this, "Mã giáo viên đã tồn tại.");
@@ -99,9 +91,9 @@ public class TeacherManagementPanel extends JPanel {
             }
         }
 
-        Teacher teacher = new Teacher(teacherID, name, department, email);
+        Teacher teacher = new Teacher(teacherID, name, email);
         DataManager.teacherList.add(teacher);
-        tableModel.addRow(new Object[]{teacherID, name, department, email});
+        tableModel.addRow(new Object[]{teacherID, name, "", email});
         DataManager.saveData();
         clearFields();
     }
@@ -114,12 +106,11 @@ public class TeacherManagementPanel extends JPanel {
             String department = tfDepartment.getText().trim();
             String email = tfEmail.getText().trim();
 
-            if (teacherID.isEmpty() || name.isEmpty() || department.isEmpty() || email.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
+            if (teacherID.isEmpty() || name.isEmpty() || email.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập đủ Mã GV, Tên, Email (Khoa không bắt buộc).");
                 return;
             }
 
-            // Kiểm tra mã giáo viên không trùng với các giáo viên khác
             for (int i = 0; i < DataManager.teacherList.size(); i++) {
                 if (i != selectedRow && DataManager.teacherList.get(i).getID().equals(teacherID)) {
                     JOptionPane.showMessageDialog(this, "Mã giáo viên đã tồn tại.");
@@ -130,12 +121,11 @@ public class TeacherManagementPanel extends JPanel {
             Teacher teacher = DataManager.teacherList.get(selectedRow);
             teacher.setID(teacherID);
             teacher.setName(name);
-            teacher.setDepartment(department);
             teacher.setEmail(email);
 
             tableModel.setValueAt(teacherID, selectedRow, 0);
             tableModel.setValueAt(name, selectedRow, 1);
-            tableModel.setValueAt(department, selectedRow, 2);
+            tableModel.setValueAt("", selectedRow, 2);
             tableModel.setValueAt(email, selectedRow, 3);
             DataManager.saveData();
             clearFields();

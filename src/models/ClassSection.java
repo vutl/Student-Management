@@ -20,7 +20,6 @@ public class ClassSection {
         this.classSessions = new ArrayList<>();
     }
 
-    // Getters và Setters
     public String getClassCode() {
         return classCode;
     }

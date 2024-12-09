@@ -1,12 +1,11 @@
 package ui;
 
-import models.Student;
-import utils.DataManager;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import models.Student;
+import utils.DataManager;
 
 public class StudentPanel extends JPanel {
     private JTable table;
@@ -18,19 +17,16 @@ public class StudentPanel extends JPanel {
     public StudentPanel() {
         setLayout(new BorderLayout());
 
-        // Tạo bảng hiển thị sinh viên
         String[] columnNames = {"Mã SV", "Tên", "Tuổi", "Email"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
 
-        // Tải dữ liệu từ DataManager vào bảng
         loadStudents();
 
-        // Panel nhập liệu
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         tfStudentID = new JTextField();
         tfName = new JTextField();
-        tfAge = new JTextField();
+        tfAge = new JTextField(); // Age không có trong model, hiển thị trống
         tfEmail = new JTextField();
 
         inputPanel.add(new JLabel("Mã sinh viên:"));
@@ -42,7 +38,6 @@ public class StudentPanel extends JPanel {
         inputPanel.add(new JLabel("Email:"));
         inputPanel.add(tfEmail);
 
-        // Nút thao tác
         btnAdd = new JButton("Thêm");
         btnUpdate = new JButton("Sửa");
         btnDelete = new JButton("Xóa");
@@ -56,17 +51,16 @@ public class StudentPanel extends JPanel {
         btnUpdate.addActionListener(e -> updateStudent());
         btnDelete.addActionListener(e -> deleteStudent());
 
-        // Thêm các thành phần vào panel
         add(new JScrollPane(table), BorderLayout.CENTER);
         add(inputPanel, BorderLayout.NORTH);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Sự kiện khi chọn một hàng trong bảng
         table.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 int selectedRow = table.getSelectedRow();
                 tfStudentID.setText(tableModel.getValueAt(selectedRow, 0).toString());
                 tfName.setText(tableModel.getValueAt(selectedRow, 1).toString());
+                // Tuổi trong bảng để trống
                 tfAge.setText(tableModel.getValueAt(selectedRow, 2).toString());
                 tfEmail.setText(tableModel.getValueAt(selectedRow, 3).toString());
             }
@@ -76,30 +70,20 @@ public class StudentPanel extends JPanel {
     private void loadStudents() {
         tableModel.setRowCount(0);
         for (Student s : DataManager.studentList) {
-            tableModel.addRow(new Object[]{s.getID(), s.getName(), s.getAge(), s.getEmail()});
+            tableModel.addRow(new Object[]{s.getID(), s.getName(), "", s.getEmail()});
         }
     }
 
     private void addStudent() {
         String studentID = tfStudentID.getText().trim();
         String name = tfName.getText().trim();
-        String ageStr = tfAge.getText().trim();
         String email = tfEmail.getText().trim();
 
-        if (studentID.isEmpty() || name.isEmpty() || ageStr.isEmpty() || email.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
+        if (studentID.isEmpty() || name.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin (trừ tuổi không bắt buộc).");
             return;
         }
 
-        int age;
-        try {
-            age = Integer.parseInt(ageStr);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Tuổi phải là số nguyên.");
-            return;
-        }
-
-        // Kiểm tra mã sinh viên đã tồn tại
         for (Student s : DataManager.studentList) {
             if (s.getID().equals(studentID)) {
                 JOptionPane.showMessageDialog(this, "Mã sinh viên đã tồn tại.");
@@ -107,9 +91,10 @@ public class StudentPanel extends JPanel {
             }
         }
 
-        Student student = new Student(studentID, name, age, email);
+        // tạo student mới với remainingCredits mặc định là 30
+        Student student = new Student(studentID, name, email, 30);
         DataManager.studentList.add(student);
-        tableModel.addRow(new Object[]{studentID, name, age, email});
+        tableModel.addRow(new Object[]{studentID, name, "", email});
         DataManager.saveData();
         clearFields();
     }
@@ -119,23 +104,13 @@ public class StudentPanel extends JPanel {
         if (selectedRow >= 0) {
             String studentID = tfStudentID.getText().trim();
             String name = tfName.getText().trim();
-            String ageStr = tfAge.getText().trim();
             String email = tfEmail.getText().trim();
 
-            if (studentID.isEmpty() || name.isEmpty() || ageStr.isEmpty() || email.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
+            if (studentID.isEmpty() || name.isEmpty() || email.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin (trừ tuổi không bắt buộc).");
                 return;
             }
 
-            int age;
-            try {
-                age = Integer.parseInt(ageStr);
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Tuổi phải là số nguyên.");
-                return;
-            }
-
-            // Kiểm tra mã sinh viên không trùng với các sinh viên khác
             for (int i = 0; i < DataManager.studentList.size(); i++) {
                 if (i != selectedRow && DataManager.studentList.get(i).getID().equals(studentID)) {
                     JOptionPane.showMessageDialog(this, "Mã sinh viên đã tồn tại.");
@@ -146,13 +121,11 @@ public class StudentPanel extends JPanel {
             Student student = DataManager.studentList.get(selectedRow);
             student.setID(studentID);
             student.setName(name);
-            student.setAge(age);
             student.setEmail(email);
-            // Không thay đổi số tín chỉ của sinh viên khi cập nhật thông tin
 
             tableModel.setValueAt(studentID, selectedRow, 0);
             tableModel.setValueAt(name, selectedRow, 1);
-            tableModel.setValueAt(age, selectedRow, 2);
+            tableModel.setValueAt("", selectedRow, 2);
             tableModel.setValueAt(email, selectedRow, 3);
             DataManager.saveData();
             clearFields();

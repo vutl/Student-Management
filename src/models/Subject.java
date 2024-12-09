@@ -16,7 +16,6 @@ public class Subject {
         this.classSections = new ArrayList<>();
     }
 
-    // Getters và Setters
     public String getSubjectID() {
         return subjectID;
     }

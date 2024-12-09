@@ -1,13 +1,12 @@
 package ui;
 
-import models.*;
-import utils.DataManager;
-
+import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
-import java.time.format.DateTimeFormatter;
+import models.*;
+import utils.DataManager;
 
 public class TeacherInteractionPanel extends JPanel {
     private Teacher teacher;
@@ -16,18 +15,18 @@ public class TeacherInteractionPanel extends JPanel {
 
     private JTextField tfClassCode;
     private JComboBox<Subject> cbSubject;
-    private JButton btnCreateClass, btnRemoveStudent, btnViewSessions, btnLogout;
-
+    private JButton btnCreateClass, btnRemoveStudent, btnLogout;
     private JComboBox<ClassSection> cbClassSection;
     private JTable studentTable;
     private DefaultTableModel studentTableModel;
 
     public TeacherInteractionPanel(Teacher teacher) {
         this.teacher = teacher;
-        setLayout(new BorderLayout(10, 10)); // Thêm khoảng cách giữa các thành phần
+        System.out.println("Teacher: " + teacher); // Kiểm tra teacher null hay không
+        setLayout(new BorderLayout(10, 10));
 
-        // Panel tạo lớp mới
-        JPanel createClassPanel = new JPanel(new GridLayout(2, 3, 5, 5)); // Thay đổi GridLayout để phù hợp
+        // Panel tạo lớp
+        JPanel createClassPanel = new JPanel(new GridLayout(2, 3, 5, 5));
         tfClassCode = new JTextField();
         cbSubject = new JComboBox<>();
         for (Subject s : DataManager.subjectList) {
@@ -37,38 +36,34 @@ public class TeacherInteractionPanel extends JPanel {
 
         createClassPanel.add(new JLabel("Mã lớp:"));
         createClassPanel.add(tfClassCode);
-        createClassPanel.add(new JLabel()); // Khoảng trống
+        createClassPanel.add(new JLabel()); 
         createClassPanel.add(new JLabel("Chọn môn học:"));
         createClassPanel.add(cbSubject);
         createClassPanel.add(btnCreateClass);
 
         btnCreateClass.addActionListener(e -> createClass());
 
-        // Bảng hiển thị các lớp đang dạy
+        // Bảng lớp giáo viên dạy
         String[] columnNames = {"Mã lớp", "Môn học", "Giáo viên"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
         loadTeachingClasses();
 
-        // Panel chọn lớp để xem sinh viên và buổi học
+        // Panel chọn lớp
         JPanel classSelectionPanel = new JPanel(new BorderLayout(5, 5));
-        cbClassSection = new JComboBox<>(); // Khởi tạo trước
+        cbClassSection = new JComboBox<>();
         loadTeachingClassesComboBox();
         cbClassSection.addActionListener(e -> loadEnrolledStudents());
 
-        // Bảng hiển thị sinh viên trong lớp
+        // Bảng sinh viên
         String[] studentColumnNames = {"Mã SV", "Tên", "Email"};
         studentTableModel = new DefaultTableModel(studentColumnNames, 0);
         studentTable = new JTable(studentTableModel);
 
-        // Panel hiển thị sinh viên và các buổi học
         JPanel studentSessionPanel = new JPanel(new BorderLayout(5, 5));
-
-        // Bảng hiển thị sinh viên
         JScrollPane studentScrollPane = new JScrollPane(studentTable);
         studentSessionPanel.add(studentScrollPane, BorderLayout.CENTER);
 
-        // Panel thêm buổi học và xem buổi học
         JPanel sessionButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         JButton btnAddSession = new JButton("Thêm buổi học");
         JButton btnViewSessions = new JButton("Xem buổi học");
@@ -84,7 +79,7 @@ public class TeacherInteractionPanel extends JPanel {
         classSelectionPanel.add(cbClassSection, BorderLayout.CENTER);
         classSelectionPanel.add(studentSessionPanel, BorderLayout.SOUTH);
 
-        // Nút xóa sinh viên và đăng xuất
+        // Panel nút dưới cùng
         JPanel bottomButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         btnRemoveStudent = new JButton("Xóa sinh viên");
         btnLogout = new JButton("Đăng xuất");
@@ -94,11 +89,14 @@ public class TeacherInteractionPanel extends JPanel {
         btnRemoveStudent.addActionListener(e -> removeStudent());
         btnLogout.addActionListener(e -> logout());
 
-        // Thêm các thành phần vào giao diện
+        // Tạo panel chứa classSelectionPanel và bottomButtonPanel
+        JPanel southContainer = new JPanel(new BorderLayout(5,5));
+        southContainer.add(classSelectionPanel, BorderLayout.CENTER);
+        southContainer.add(bottomButtonPanel, BorderLayout.SOUTH);
+
         add(createClassPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
-        add(classSelectionPanel, BorderLayout.SOUTH);
-        add(bottomButtonPanel, BorderLayout.PAGE_END);
+        add(southContainer, BorderLayout.SOUTH);
     }
 
     private void createClass() {
@@ -114,7 +112,6 @@ public class TeacherInteractionPanel extends JPanel {
             return;
         }
 
-        // Số tín chỉ của lớp bằng số tín chỉ của môn học
         int credit = subject.getCredit();
 
         ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
@@ -146,7 +143,6 @@ public class TeacherInteractionPanel extends JPanel {
     private void loadEnrolledStudents() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs != null) {
-            // Tải danh sách sinh viên
             studentTableModel.setRowCount(0);
             for (Student s : cs.getEnrolledStudents()) {
                 studentTableModel.addRow(new Object[]{s.getID(), s.getName(), s.getEmail()});
@@ -162,8 +158,8 @@ public class TeacherInteractionPanel extends JPanel {
         }
 
         JTextField tfSessionID = new JTextField();
-        JTextField tfStartTime = new JTextField(); // Định dạng: yyyy-MM-dd HH:mm
-        JTextField tfEndTime = new JTextField();   // Định dạng: yyyy-MM-dd HH:mm
+        JTextField tfStartTime = new JTextField();
+        JTextField tfEndTime = new JTextField();
 
         JPanel panel = new JPanel(new GridLayout(3, 2, 5, 5));
         panel.add(new JLabel("Mã buổi học:"));
@@ -188,23 +184,21 @@ public class TeacherInteractionPanel extends JPanel {
                 LocalDateTime startTime = LocalDateTime.parse(startStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                 LocalDateTime endTime = LocalDateTime.parse(endStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
 
-                // Kiểm tra giờ học hợp lệ
                 int startHour = startTime.getHour();
                 int endHour = endTime.getHour();
+
                 if (startHour < 6 || (startHour == 17 && startTime.getMinute() > 0) || startHour > 17 ||
                         endHour < 6 || (endHour == 17 && endTime.getMinute() > 0) || endHour > 17) {
                     JOptionPane.showMessageDialog(this, "Giờ học phải từ 6:00 đến 17:00.");
                     return;
                 }
 
-                // Kiểm tra độ dài buổi học (2h30p - 3h30p)
                 long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
                 if (minutes < 150 || minutes > 210) {
                     JOptionPane.showMessageDialog(this, "Thời gian buổi học phải từ 2h30p đến 3h30p.");
                     return;
                 }
 
-                // Kiểm tra mã buổi học đã tồn tại trong lớp
                 for (ClassSession session : cs.getClassSessions()) {
                     if (session.getSessionID().equals(sessionID)) {
                         JOptionPane.showMessageDialog(this, "Mã buổi học đã tồn tại trong lớp.");
@@ -229,7 +223,6 @@ public class TeacherInteractionPanel extends JPanel {
             return;
         }
 
-        // Tạo bảng để hiển thị các buổi học
         String[] sessionColumnNames = {"Mã buổi học", "Thời gian bắt đầu", "Thời gian kết thúc"};
         DefaultTableModel sessionTableModel = new DefaultTableModel(sessionColumnNames, 0);
         JTable sessionTable = new JTable(sessionTableModel);
@@ -242,7 +235,6 @@ public class TeacherInteractionPanel extends JPanel {
             });
         }
 
-        // Tạo dialog để chọn buổi học
         int selectedOption = JOptionPane.showConfirmDialog(this, new JScrollPane(sessionTable), "Chọn buổi học để xem điểm danh", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (selectedOption == JOptionPane.OK_OPTION) {
             int selectedRow = sessionTable.getSelectedRow();
@@ -250,7 +242,6 @@ public class TeacherInteractionPanel extends JPanel {
                 String sessionID = (String) sessionTableModel.getValueAt(selectedRow, 0);
                 ClassSession session = findSessionByID(cs, sessionID);
                 if (session != null) {
-                    // Mở cửa sổ điểm danh
                     JFrame sessionFrame = new JFrame("Điểm danh - Buổi " + sessionID);
                     sessionFrame.setSize(600, 400);
                     sessionFrame.setLocationRelativeTo(null);
@@ -293,7 +284,6 @@ public class TeacherInteractionPanel extends JPanel {
                 if (student != null) {
                     cs.removeStudent(student);
                     student.removeClass(cs);
-                    // Hoàn lại số tín chỉ cho sinh viên
                     student.setRemainingCredits(student.getRemainingCredits() + cs.getCredit());
                     DataManager.saveData();
                     JOptionPane.showMessageDialog(this, "Đã xóa sinh viên khỏi lớp.");
@@ -304,7 +294,10 @@ public class TeacherInteractionPanel extends JPanel {
     }
 
     private void logout() {
-        mainFrame.showLoginTab();
+        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        if (frame instanceof MainFrame) {
+            ((MainFrame) frame).showLoginTab();
+        }
     }
 
     private void clearFields() {

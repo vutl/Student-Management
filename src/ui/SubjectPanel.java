@@ -1,12 +1,11 @@
 package ui;
 
-import models.Subject;
-import utils.DataManager;
-
+import java.awt.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
+import models.ClassSection;
+import models.Subject;
+import utils.DataManager;
 
 public class SubjectPanel extends JPanel {
     private JTable table;
@@ -17,7 +16,6 @@ public class SubjectPanel extends JPanel {
     public SubjectPanel() {
         setLayout(new BorderLayout(10, 10));
 
-        // Panel thêm môn học mới
         JPanel addPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         tfSubjectID = new JTextField();
         tfTitle = new JTextField();
@@ -35,13 +33,11 @@ public class SubjectPanel extends JPanel {
 
         btnAdd.addActionListener(e -> addSubject());
 
-        // Bảng hiển thị môn học
         String[] columnNames = {"Mã môn học", "Tên môn học", "Số tín chỉ"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
         loadSubjects();
 
-        // Nút xóa môn học
         btnRemove = new JButton("Xóa môn học");
         btnRemove.addActionListener(e -> removeSubject());
 
@@ -71,7 +67,7 @@ public class SubjectPanel extends JPanel {
         try {
             int credit = Integer.parseInt(creditStr);
             Subject subject = new Subject(subjectID, title, credit);
-            subjectList.add(subject);
+            DataManager.subjectList.add(subject);
             DataManager.saveData();
             loadSubjects();
             JOptionPane.showMessageDialog(this, "Thêm môn học thành công.");
@@ -89,7 +85,7 @@ public class SubjectPanel extends JPanel {
             if (subject != null) {
                 // Kiểm tra xem môn học có lớp học nào không
                 boolean hasClass = false;
-                for (ClassSection cs : classSectionList) {
+                for (ClassSection cs : DataManager.classSectionList) {
                     if (cs.getSubject().getSubjectID().equals(subjectID)) {
                         hasClass = true;
                         break;
@@ -100,7 +96,7 @@ public class SubjectPanel extends JPanel {
                     return;
                 }
 
-                subjectList.remove(subject);
+                DataManager.subjectList.remove(subject);
                 DataManager.saveData();
                 loadSubjects();
                 JOptionPane.showMessageDialog(this, "Đã xóa môn học.");
@@ -112,13 +108,13 @@ public class SubjectPanel extends JPanel {
 
     private void loadSubjects() {
         tableModel.setRowCount(0);
-        for (Subject s : subjectList) {
+        for (Subject s : DataManager.subjectList) {
             tableModel.addRow(new Object[]{s.getSubjectID(), s.getTitle(), s.getCredit()});
         }
     }
 
     private Subject findSubjectByID(String id) {
-        for (Subject s : subjectList) {
+        for (Subject s : DataManager.subjectList) {
             if (s.getSubjectID().equals(id)) {
                 return s;
             }

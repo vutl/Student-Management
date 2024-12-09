@@ -1,10 +1,9 @@
 package utils;
 
-import models.*;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import models.*;
 
 public class DataManager {
     public static List<Teacher> teacherList = new ArrayList<>();
@@ -15,8 +14,11 @@ public class DataManager {
 
     // Phương thức loadData() để tải dữ liệu từ file
     public static void loadData() {
-        // Ví dụ: tải dữ liệu từ file teachers.txt, students.txt, subjects.txt, etc.
-        // Đây chỉ là ví dụ đơn giản, bạn cần triển khai phương thức này phù hợp với định dạng file của bạn.
+        // Xóa danh sách trước khi load để tránh trùng lặp dữ liệu
+        teacherList.clear();
+        studentList.clear();
+        subjectList.clear();
+        classSectionList.clear();
 
         // Load Teachers
         try (BufferedReader br = new BufferedReader(new FileReader("teachers.txt"))) {
@@ -85,7 +87,7 @@ public class DataManager {
             System.out.println("Không thể tải dữ liệu lớp học: " + e.getMessage());
         }
 
-        // Bạn có thể thêm việc load các dữ liệu khác như enrollments, class_sessions, etc.
+        // Nếu cần, bạn có thể load thêm dữ liệu về ClassSession, attendance...
     }
 
     public static void calculateGrades() {
@@ -99,7 +101,7 @@ public class DataManager {
                     }
                 }
 
-                // Quy định: Trượt nếu vắng mặt >=5 buổi (ví dụ)
+                // Quy định: Trượt nếu vắng mặt >= 5 buổi
                 if (absentCount >= 5) {
                     s.getFailedSubjects().add(cs.getSubject().getSubjectID());
                 } else {
@@ -112,9 +114,6 @@ public class DataManager {
 
     // Phương thức saveData() để lưu dữ liệu vào file
     public static void saveData() {
-        // Tương tự như loadData, bạn cần triển khai phương thức này phù hợp với định dạng file của bạn.
-        // Ví dụ: lưu Teachers, Students, Subjects, ClassSections, etc.
-
         // Save Teachers
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
             for (Teacher t : teacherList) {
@@ -154,8 +153,7 @@ public class DataManager {
         } catch (IOException e) {
             System.out.println("Không thể lưu dữ liệu lớp học: " + e.getMessage());
         }
-
-        // Bạn có thể thêm việc lưu các dữ liệu khác như enrollments, class_sessions, etc.
+        // Có thể lưu thêm enrollment, session... tùy yêu cầu.
     }
 
     // Phương thức tìm sinh viên theo ID
@@ -188,4 +186,13 @@ public class DataManager {
         return null;
     }
 
+    // Bổ sung phương thức tìm ClassSection theo mã lớp để tương thích với code UI
+    public static ClassSection findClassSectionByCode(String code) {
+        for (ClassSection cs : classSectionList) {
+            if (cs.getClassCode().equals(code)) {
+                return cs;
+            }
+        }
+        return null;
+    }
 }

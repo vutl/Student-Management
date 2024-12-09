@@ -1,57 +1,69 @@
 package ui;
 
-import utils.DataManager;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
+import models.Student;
+import models.Teacher;
+import utils.DataManager;
 
 public class MainFrame extends JFrame {
     private JTabbedPane tabbedPane;
     private LoginPanel loginPanel;
-    private StudentInteractionPanel studentPanel;
-    private TeacherInteractionPanel teacherPanel;
+    private StudentPanel studentPanel;
     private SubjectPanel subjectPanel;
+    private TeacherManagementPanel teacherManagementPanel;
 
     public MainFrame() {
         setTitle("Quản lý Học kì");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Tạo tab panel
+        // Gọi loadData để nạp dữ liệu từ file
+        DataManager.loadData();
+
         tabbedPane = new JTabbedPane();
 
-        // Khởi tạo các panel nhưng không thêm vào tabbedPane ngay
+        // Khởi tạo các panel
+        loginPanel = new LoginPanel(this);
+        studentPanel = new StudentPanel();
         subjectPanel = new SubjectPanel();
+        teacherManagementPanel = new TeacherManagementPanel();
 
-        // Tạo và thêm tab Đăng nhập đầu tiên
-        loginPanel = new LoginPanel(this); // Pass the MainFrame to LoginPanel
+        // Thêm vào tabbedPane
         tabbedPane.addTab("Đăng nhập", loginPanel);
+        tabbedPane.addTab("Sinh viên", studentPanel);
+        tabbedPane.addTab("Môn học", subjectPanel);
+        tabbedPane.addTab("Quản lý giáo viên", teacherManagementPanel);
 
-        // Thêm tab vào frame (chỉ có Đăng nhập lúc đầu)
-        add(tabbedPane);
+        add(tabbedPane, BorderLayout.CENTER);
 
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    // Phương thức để hiển thị các tab sau khi đăng nhập
-    public void showTabsAfterLogin(boolean isTeacher) {
-        // Xóa tất cả các tab hiện tại
+    // Hiển thị StudentInteractionPanel sau khi sinh viên đăng nhập
+    public void showStudentInteractionPanel(Student student) {
         tabbedPane.removeAll();
+        StudentInteractionPanel sip = new StudentInteractionPanel(student);
 
-        if (isTeacher) {
-            // Lấy đối tượng Teacher từ DataManager
-            TeacherInteractionPanel teacherPanel = new TeacherInteractionPanel(DataManager.findTeacherByID(DataManager.currentLoggedInID));
-            tabbedPane.addTab("Giáo viên", teacherPanel);
-            tabbedPane.addTab("Môn học", subjectPanel);
-        } else {
-            // Lấy đối tượng Student từ DataManager
-            StudentInteractionPanel studentPanel = new StudentInteractionPanel(DataManager.findStudentByID(DataManager.currentLoggedInID));
-            tabbedPane.addTab("Sinh viên", studentPanel);
-            tabbedPane.addTab("Môn học", subjectPanel);
-        }
+        // Chỉ thêm StudentInteractionPanel
+        tabbedPane.addTab("Sinh viên", sip);
+        addLogoutTab();
+        tabbedPane.setSelectedComponent(sip);
+    }
 
-        // Thêm tab "Đăng xuất"
+    // Hiển thị TeacherInteractionPanel sau khi giáo viên đăng nhập
+    public void showTeacherInteractionPanel(Teacher teacher) {
+        tabbedPane.removeAll();
+        TeacherInteractionPanel tip = new TeacherInteractionPanel(teacher);
+
+        // Chỉ thêm TeacherInteractionPanel
+        tabbedPane.addTab("Giáo viên", tip);
+        addLogoutTab();
+        tabbedPane.setSelectedComponent(tip);
+    }
+
+    private void addLogoutTab() {
         JButton btnLogout = new JButton("Đăng xuất");
         btnLogout.addActionListener(e -> showLoginTab());
 
@@ -59,20 +71,29 @@ public class MainFrame extends JFrame {
         logoutPanel.add(btnLogout);
 
         tabbedPane.addTab("Đăng xuất", logoutPanel);
-        tabbedPane.setSelectedIndex(0); // Chọn tab đầu tiên sau khi đăng nhập
     }
 
-    // Phương thức để quay lại giao diện đăng nhập sau khi đăng xuất
     public void showLoginTab() {
-        // Xóa tất cả các tab hiện tại
         tabbedPane.removeAll();
-
-        // Reset currentLoggedInID
         DataManager.currentLoggedInID = null;
-
-        // Tạo lại LoginPanel với MainFrame hiện tại
+    
+        // Khởi tạo lại các panel như ban đầu
         loginPanel = new LoginPanel(this);
+        studentPanel = new StudentPanel();
+        subjectPanel = new SubjectPanel();
+        teacherManagementPanel = new TeacherManagementPanel();
+    
+        // Thêm lại tất cả các tab như lúc mới mở app
         tabbedPane.addTab("Đăng nhập", loginPanel);
-        tabbedPane.setSelectedIndex(0);
+        tabbedPane.addTab("Sinh viên", studentPanel);
+        tabbedPane.addTab("Môn học", subjectPanel);
+        tabbedPane.addTab("Quản lý giáo viên", teacherManagementPanel);
+    
+        tabbedPane.setSelectedIndex(0); // Chọn tab Đăng nhập
+    }
+    
+
+    public static void main(String[] args) {
+        new MainFrame();
     }
 }

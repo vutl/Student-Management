@@ -1,17 +1,17 @@
 package ui;
 
-import models.*;
-import utils.DataManager;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
+import models.Student;
+import models.Teacher;
+import utils.DataManager;
 
 public class LoginPanel extends JPanel {
     private MainFrame mainFrame;
     private JTextField tfID;
     private JButton btnLogin;
 
-    public LoginPanel(MainFrame mainFrame) { // Constructor nhận MainFrame
+    public LoginPanel(MainFrame mainFrame) {
         this.mainFrame = mainFrame;
         setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -37,17 +37,15 @@ public class LoginPanel extends JPanel {
         String id = tfID.getText().trim();
         Student student = DataManager.findStudentByID(id);
         if (student != null) {
-            // Đăng nhập với tư cách sinh viên
-            DataManager.currentLoggedInID = id; // Lưu ID hiện tại
+            DataManager.currentLoggedInID = id;
             JOptionPane.showMessageDialog(this, "Đăng nhập thành công với tư cách sinh viên.");
-            mainFrame.showTabsAfterLogin(false); // false: không phải giáo viên
+            mainFrame.showStudentInteractionPanel(student);
         } else {
             Teacher teacher = DataManager.findTeacherByID(id);
             if (teacher != null) {
-                // Đăng nhập với tư cách giáo viên
-                DataManager.currentLoggedInID = id; // Lưu ID hiện tại
+                DataManager.currentLoggedInID = id;
                 JOptionPane.showMessageDialog(this, "Đăng nhập thành công với tư cách giáo viên.");
-                mainFrame.showTabsAfterLogin(true); // true: là giáo viên
+                mainFrame.showTeacherInteractionPanel(teacher);
             } else {
                 JOptionPane.showMessageDialog(this, "ID không tồn tại.");
             }
