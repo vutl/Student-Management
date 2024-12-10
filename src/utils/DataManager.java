@@ -23,12 +23,13 @@ public class DataManager {
         classSectionList.clear();
 
         // Load Teachers
+        // Bây giờ thêm khoa cho giáo viên, format: ID,Name,Department,Email
         try (BufferedReader br = new BufferedReader(new FileReader("teachers.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length >= 3) {
-                    Teacher teacher = new Teacher(parts[0], parts[1], parts[2]);
+                if (parts.length >= 4) {
+                    Teacher teacher = new Teacher(parts[0], parts[1], parts[2], parts[3]);
                     teacherList.add(teacher);
                 }
             }
@@ -37,12 +38,14 @@ public class DataManager {
         }
 
         // Load Students
+        // Format: ID,Name,Age,Email,RemainingCredits
+        // Lưu ý: trước đây ko có Age, giờ thêm Age vào file (ID,Name,Age,Email,Credit)
         try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length >= 4) {
-                    Student student = new Student(parts[0], parts[1], parts[2], Integer.parseInt(parts[3]));
+                if (parts.length >= 5) {
+                    Student student = new Student(parts[0], parts[1], Integer.parseInt(parts[2]), parts[3], Integer.parseInt(parts[4]));
                     studentList.add(student);
                 }
             }
@@ -69,7 +72,6 @@ public class DataManager {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                // Nếu có 5 phần tử thì phần tử thứ 5 là finished
                 boolean finished = false;
                 if (parts.length == 5) {
                     finished = Boolean.parseBoolean(parts[4]);
@@ -182,8 +184,6 @@ public class DataManager {
     }
 
     public static void calculateGrades(ClassSection cs) {
-        // Khi kết thúc lớp học mới tính pass/fail
-        // Nếu lớp không đủ 14 hoặc 15 buổi, cứ tính theo số buổi thực tế
         int totalSessions = cs.getClassSessions().size();
         for (Student s : cs.getEnrolledStudents()) {
             int absences = 0;
@@ -194,11 +194,9 @@ public class DataManager {
             double midterm = s.getMidterm(cs.getClassCode());
             double fin = s.getFinal(cs.getClassCode());
             boolean passed;
-            // Nếu vắng >3 buổi => fail ngay
             if (absences > 3) {
                 passed = false;
             } else {
-                // Nếu chưa có đủ điểm midterm/final, coi như 0
                 if (midterm <0) midterm=0;
                 if (fin<0) fin=0;
                 double finalGrade = midterm*0.3 + fin*0.7;
@@ -210,20 +208,20 @@ public class DataManager {
     }
 
     public static void saveData() {
-        // Save Teachers
+        // Save Teachers: ID,Name,Department,Email
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
             for (Teacher t : teacherList) {
-                bw.write(t.getID() + "," + t.getName() + "," + t.getEmail());
+                bw.write(t.getID() + "," + t.getName() + "," + t.getDepartment() + "," + t.getEmail());
                 bw.newLine();
             }
         } catch (IOException e) {
             System.out.println("Không thể lưu dữ liệu giáo viên: " + e.getMessage());
         }
 
-        // Save Students
+        // Save Students: ID,Name,Age,Email,RemainingCredits
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("students.txt"))) {
             for (Student s : studentList) {
-                bw.write(s.getID() + "," + s.getName() + "," + s.getEmail() + "," + s.getRemainingCredits());
+                bw.write(s.getID() + "," + s.getName() + "," + s.getAge() + "," + s.getEmail() + "," + s.getRemainingCredits());
                 bw.newLine();
             }
         } catch (IOException e) {
@@ -240,7 +238,7 @@ public class DataManager {
             System.out.println("Không thể lưu dữ liệu môn học: " + e.getMessage());
         }
 
-        // Save ClassSections
+        // Save ClassSections: classCode,subjectID,teacherID,credit,finished
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt"))) {
             for (ClassSection cs : classSectionList) {
                 bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit() + "," + cs.isFinished());

@@ -26,14 +26,14 @@ public class StudentPanel extends JPanel {
         JPanel inputPanel = new JPanel(new GridLayout(5, 2));
         tfStudentID = new JTextField();
         tfName = new JTextField();
-        tfAge = new JTextField(); // Age không có trong model, hiển thị trống
+        tfAge = new JTextField();
         tfEmail = new JTextField();
 
         inputPanel.add(new JLabel("Mã sinh viên:"));
         inputPanel.add(tfStudentID);
         inputPanel.add(new JLabel("Tên:"));
         inputPanel.add(tfName);
-        inputPanel.add(new JLabel("Tuổi:"));
+        inputPanel.add(new JLabel("Tuổi (16-60):"));
         inputPanel.add(tfAge);
         inputPanel.add(new JLabel("Email:"));
         inputPanel.add(tfEmail);
@@ -60,8 +60,7 @@ public class StudentPanel extends JPanel {
                 int selectedRow = table.getSelectedRow();
                 tfStudentID.setText(tableModel.getValueAt(selectedRow, 0).toString());
                 tfName.setText(tableModel.getValueAt(selectedRow, 1).toString());
-                // Tuổi trong bảng để trống
-                tfAge.setText(tableModel.getValueAt(selectedRow, 2).toString());
+                tfAge.setText(tableModel.getValueAt(selectedRow, 2)==null?"":tableModel.getValueAt(selectedRow, 2).toString());
                 tfEmail.setText(tableModel.getValueAt(selectedRow, 3).toString());
             }
         });
@@ -70,17 +69,30 @@ public class StudentPanel extends JPanel {
     private void loadStudents() {
         tableModel.setRowCount(0);
         for (Student s : DataManager.studentList) {
-            tableModel.addRow(new Object[]{s.getID(), s.getName(), "", s.getEmail()});
+            tableModel.addRow(new Object[]{s.getID(), s.getName(), s.getAge(), s.getEmail()});
         }
     }
 
     private void addStudent() {
         String studentID = tfStudentID.getText().trim();
         String name = tfName.getText().trim();
+        String ageStr = tfAge.getText().trim();
         String email = tfEmail.getText().trim();
 
-        if (studentID.isEmpty() || name.isEmpty() || email.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin (trừ tuổi không bắt buộc).");
+        if (studentID.isEmpty() || name.isEmpty() || ageStr.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
+            return;
+        }
+
+        int age;
+        try {
+            age = Integer.parseInt(ageStr);
+            if (age <16 || age >60) {
+                JOptionPane.showMessageDialog(this, "Tuổi phải từ 16-60.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Tuổi phải là số.");
             return;
         }
 
@@ -91,10 +103,10 @@ public class StudentPanel extends JPanel {
             }
         }
 
-        // tạo student mới với remainingCredits mặc định là 12
-        Student student = new Student(studentID, name, email, 12);
+        int defaultCredits=20; //hoặc 30 tùy ý bạn
+        Student student = new Student(studentID, name, age, email, defaultCredits);
         DataManager.studentList.add(student);
-        tableModel.addRow(new Object[]{studentID, name, "", email});
+        tableModel.addRow(new Object[]{studentID, name, age, email});
         DataManager.saveData();
         clearFields();
     }
@@ -104,13 +116,27 @@ public class StudentPanel extends JPanel {
         if (selectedRow >= 0) {
             String studentID = tfStudentID.getText().trim();
             String name = tfName.getText().trim();
+            String ageStr = tfAge.getText().trim();
             String email = tfEmail.getText().trim();
 
-            if (studentID.isEmpty() || name.isEmpty() || email.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin (trừ tuổi không bắt buộc).");
+            if (studentID.isEmpty() || name.isEmpty() || ageStr.isEmpty() || email.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ thông tin.");
                 return;
             }
 
+            int age;
+            try {
+                age = Integer.parseInt(ageStr);
+                if (age <16 || age >60) {
+                    JOptionPane.showMessageDialog(this, "Tuổi phải từ 16-60.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "Tuổi phải là số.");
+                return;
+            }
+
+            // Check trùng studentID
             for (int i = 0; i < DataManager.studentList.size(); i++) {
                 if (i != selectedRow && DataManager.studentList.get(i).getID().equals(studentID)) {
                     JOptionPane.showMessageDialog(this, "Mã sinh viên đã tồn tại.");
@@ -121,11 +147,12 @@ public class StudentPanel extends JPanel {
             Student student = DataManager.studentList.get(selectedRow);
             student.setID(studentID);
             student.setName(name);
+            student.setAge(age);
             student.setEmail(email);
 
             tableModel.setValueAt(studentID, selectedRow, 0);
             tableModel.setValueAt(name, selectedRow, 1);
-            tableModel.setValueAt("", selectedRow, 2);
+            tableModel.setValueAt(age, selectedRow, 2);
             tableModel.setValueAt(email, selectedRow, 3);
             DataManager.saveData();
             clearFields();

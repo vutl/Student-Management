@@ -6,12 +6,15 @@ import java.util.List;
 public class Teacher implements PersonInterface {
     private String ID;
     private String name;
+    private String department; // thêm department
     private String email;
     private List<ClassSection> teachingClasses;
 
-    public Teacher(String ID, String name, String email) {
+    // Constructor mới với department
+    public Teacher(String ID, String name, String department, String email) {
         this.ID = ID;
         this.name = name;
+        this.department = department;
         this.email = email;
         this.teachingClasses = new ArrayList<>();
     }
@@ -34,6 +37,14 @@ public class Teacher implements PersonInterface {
     @Override
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDepartment() { // getter department
+        return department;
+    }
+
+    public void setDepartment(String department) { // setter department
+        this.department = department;
     }
 
     @Override

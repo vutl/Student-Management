@@ -5,13 +5,13 @@ import java.util.*;
 public class Student implements PersonInterface {
     private String ID;
     private String name;
+    private int age; // Thêm tuổi
     private String email;
     private List<ClassSection> enrolledClasses;
     private int remainingCredits;
     private List<String> passedSubjects;
     private List<String> failedSubjects;
 
-    // Lưu điểm cho mỗi classCode
     public static class GradeInfo {
         public double midterm = -1;
         public double finalExam = -1;
@@ -20,9 +20,11 @@ public class Student implements PersonInterface {
 
     private Map<String, GradeInfo> grades; // key = classCode
 
-    public Student(String ID, String name, String email, int remainingCredits) {
+    // Constructor mới: ID, name, age, email, remainingCredits
+    public Student(String ID, String name, int age, String email, int remainingCredits) {
         this.ID = ID;
         this.name = name;
+        this.age = age; // set age
         this.email = email;
         this.remainingCredits = remainingCredits;
         this.enrolledClasses = new ArrayList<>();
@@ -49,6 +51,14 @@ public class Student implements PersonInterface {
     @Override
     public void setName(String name) {
         this.name = name;
+    }
+
+    public int getAge() { // getter cho age
+        return age;
+    }
+
+    public void setAge(int age) { // setter cho age
+        this.age = age;
     }
 
     @Override
@@ -90,7 +100,6 @@ public class Student implements PersonInterface {
         return failedSubjects;
     }
 
-    // Thiết lập điểm cho một lớp
     public void setGradeForClass(String classCode, double midterm, double finalExam, boolean passed) {
         GradeInfo info = grades.getOrDefault(classCode, new GradeInfo());
         info.midterm = midterm;
@@ -98,7 +107,6 @@ public class Student implements PersonInterface {
         info.passed = passed;
         grades.put(classCode, info);
 
-        // Cập nhật passedSubjects và failedSubjects nếu đủ 15 buổi
         ClassSection cs = null;
         for (ClassSection c : getEnrolledClasses()) {
             if (c.getClassCode().equals(classCode)) {
@@ -107,7 +115,6 @@ public class Student implements PersonInterface {
             }
         }
         if (cs != null && cs.getClassSessions().size() == 15) {
-            // Đủ 15 buổi
             String subjectID = cs.getSubject().getSubjectID();
             if (passed) {
                 if (!passedSubjects.contains(subjectID)) passedSubjects.add(subjectID);
