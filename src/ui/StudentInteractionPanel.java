@@ -2,8 +2,7 @@ package ui;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.time.format.DateTimeFormatter;
-
+import java.time.LocalDateTime;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
@@ -97,7 +96,7 @@ public class StudentInteractionPanel extends JPanel {
         Subject selectedSubject = (Subject) cbSubject.getSelectedItem();
         if (selectedSubject != null) {
             for (ClassSection cs : selectedSubject.getClassSections()) {
-                // Kiểm tra sinh viên đã đăng ký lớp nào của môn này chưa
+                // Kiểm tra sinh viên đã tham gia lớp nào của môn này chưa
                 boolean alreadyEnrolled = false;
                 for (ClassSection enrolledCs : student.getEnrolledClasses()) {
                     if (enrolledCs.getSubject().getSubjectID().equals(selectedSubject.getSubjectID())) {
@@ -126,11 +125,21 @@ public class StudentInteractionPanel extends JPanel {
     private void registerClass() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs != null) {
-            for (ClassSection enrolled : student.getEnrolledClasses()) {
-                if (enrolled.getSubject().getSubjectID().equals(cs.getSubject().getSubjectID())) {
-                    JOptionPane.showMessageDialog(this, "Bạn đã tham gia một lớp cùng môn học này.");
-                    return;
-                }
+            // Kiểm tra lớp đã kết thúc hoặc >=4 buổi => không đăng ký
+            if (cs.isFinished()) {
+                JOptionPane.showMessageDialog(this, "Lớp đã kết thúc, không thể đăng ký.");
+                return;
+            }
+            if (cs.getClassSessions().size() >=4) {
+                JOptionPane.showMessageDialog(this, "Lớp đã có >=4 buổi, không thể đăng ký nữa.");
+                return;
+            }
+
+            // Kiểm tra sinh viên không học 2 lớp cùng môn đã làm ở loadClassSections()
+            // Kiểm tra trùng lịch buổi học:
+            if (!checkNoTimeConflict(cs)) {
+                JOptionPane.showMessageDialog(this, "Bạn bị trùng giờ với lớp khác bạn đang học.");
+                return;
             }
 
             if (!student.getEnrolledClasses().contains(cs)) {
@@ -150,13 +159,30 @@ public class StudentInteractionPanel extends JPanel {
         }
     }
 
+    private boolean checkNoTimeConflict(ClassSection newClass) {
+        // Lấy tất cả buổi học của newClass, so sánh với buổi học của tất cả lớp student đang học
+        for (ClassSection enrolled : student.getEnrolledClasses()) {
+            for (ClassSession es : enrolled.getClassSessions()) {
+                LocalDateTime eStart = es.getStartTime();
+                LocalDateTime eEnd = es.getEndTime();
+                for (ClassSession ns : newClass.getClassSessions()) {
+                    LocalDateTime nStart = ns.getStartTime();
+                    LocalDateTime nEnd = ns.getEndTime();
+
+                    boolean overlap = nStart.isBefore(eEnd) && nEnd.isAfter(eStart);
+                    if (overlap) return false;
+                }
+            }
+        }
+        return true;
+    }
+
     private void cancelClass() {
         int selectedRow = table.getSelectedRow();
         if (selectedRow >= 0) {
             String classCode = tableModel.getValueAt(selectedRow, 0).toString();
             ClassSection cs = DataManager.findClassSectionByCode(classCode);
             if (cs != null) {
-                // Kiểm tra đã tham gia >=3 buổi?
                 int participated = 0;
                 for (ClassSession session : cs.getClassSessions()) {
                     Boolean present = session.getAttendanceRecords().get(student.getID());
@@ -180,7 +206,6 @@ public class StudentInteractionPanel extends JPanel {
     }
 
     private void viewGrades() {
-        // Hiển thị điểm midterm, final, và trạng thái pass/fail cho các lớp đã đủ 15 buổi
         StringBuilder sb = new StringBuilder("Bảng điểm:\n");
         for (ClassSection cs : student.getEnrolledClasses()) {
             String classCode = cs.getClassCode();
@@ -189,8 +214,9 @@ public class StudentInteractionPanel extends JPanel {
             boolean passed = student.isPassed(classCode);
             if (mid >=0 && fin>=0) {
                 double finalGrade = mid*0.3 + fin*0.7;
-                sb.append("Lớp: ").append(classCode).append(", Midterm: ").append(mid)
-                        .append(", Final: ").append(fin)
+                sb.append("Lớp: ").append(classCode)
+                        .append(", Midterm: ").append(mid>=0?mid:"N/A")
+                        .append(", Final: ").append(fin>=0?fin:"N/A")
                         .append(", FinalGrade: ").append(finalGrade)
                         .append(", Passed: ").append(passed).append("\n");
             } else {
@@ -201,7 +227,6 @@ public class StudentInteractionPanel extends JPanel {
     }
 
     private void viewAttendance() {
-        // Hiển thị attendance cho các lớp đã đăng ký
         int selectedRow = table.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn lớp trong bảng bên dưới để xem attendance.");
@@ -215,13 +240,14 @@ public class StudentInteractionPanel extends JPanel {
         DefaultTableModel attModel = new DefaultTableModel(col,0);
         JTable attTable = new JTable(attModel);
 
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         for (ClassSession session : cs.getClassSessions()) {
             Boolean present = session.getAttendanceRecords().get(student.getID());
             String presentStr = (present != null && present) ? "Có" : "Vắng";
             attModel.addRow(new Object[]{
                     session.getSessionID(),
-                    session.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                    session.getEndTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    session.getStartTime().format(fmt),
+                    session.getEndTime().format(fmt),
                     presentStr
             });
         }

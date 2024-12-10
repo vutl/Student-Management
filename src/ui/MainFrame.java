@@ -1,6 +1,5 @@
 package ui;
 
-import java.awt.*;
 import javax.swing.*;
 import models.Student;
 import models.Teacher;
@@ -9,6 +8,7 @@ import utils.DataManager;
 public class MainFrame extends JFrame {
     private JTabbedPane tabbedPane;
     private LoginPanel loginPanel;
+    private AdminLoginPanel adminLoginPanel;
     private StudentPanel studentPanel;
     private SubjectPanel subjectPanel;
     private TeacherManagementPanel teacherManagementPanel;
@@ -18,82 +18,86 @@ public class MainFrame extends JFrame {
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Gọi loadData để nạp dữ liệu từ file
+        // Tải dữ liệu
         DataManager.loadData();
 
         tabbedPane = new JTabbedPane();
 
-        // Khởi tạo các panel
+        // Khởi tạo panel
         loginPanel = new LoginPanel(this);
+        adminLoginPanel = new AdminLoginPanel(this);
         studentPanel = new StudentPanel();
         subjectPanel = new SubjectPanel();
         teacherManagementPanel = new TeacherManagementPanel();
 
-        // Thêm vào tabbedPane
+        // Thêm tab
         tabbedPane.addTab("Đăng nhập", loginPanel);
+        tabbedPane.addTab("Admin Login", adminLoginPanel);
+
+        // Thêm các tab quản lý nhưng ẩn (hoặc disable) cho đến khi admin đăng nhập
+        // Ban đầu ta không add 3 tab này, sau khi admin login mới add
+        // Hoặc add sẵn nhưng disable:
+        // add sẵn, disable:
         tabbedPane.addTab("Sinh viên", studentPanel);
         tabbedPane.addTab("Môn học", subjectPanel);
         tabbedPane.addTab("Quản lý giáo viên", teacherManagementPanel);
 
-        add(tabbedPane, BorderLayout.CENTER);
+        // Admin chưa login => ẩn 3 tab
+        setAdminTabsVisible(false);
 
+        add(tabbedPane);
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
     // Hiển thị StudentInteractionPanel sau khi sinh viên đăng nhập
     public void showStudentInteractionPanel(Student student) {
+        // Xóa tất cả các tab, chỉ để tab StudentInteractionPanel
+        // Thay đổi logic: Khi sinh viên login, chỉ cần hiển thị 1 tab StudentInteractionPanel
         tabbedPane.removeAll();
-        StudentInteractionPanel sip = new StudentInteractionPanel(student);
-
-        // Chỉ thêm StudentInteractionPanel
-        tabbedPane.addTab("Sinh viên", sip);
-        addLogoutTab();
-        tabbedPane.setSelectedComponent(sip);
+        tabbedPane.add("Sinh viên Tương tác", new StudentInteractionPanel(student));
     }
 
     // Hiển thị TeacherInteractionPanel sau khi giáo viên đăng nhập
     public void showTeacherInteractionPanel(Teacher teacher) {
+        // Xóa tất cả, chỉ TeacherInteractionPanel
         tabbedPane.removeAll();
-        TeacherInteractionPanel tip = new TeacherInteractionPanel(teacher);
-
-        // Chỉ thêm TeacherInteractionPanel
-        tabbedPane.addTab("Giáo viên", tip);
-        addLogoutTab();
-        tabbedPane.setSelectedComponent(tip);
-    }
-
-    private void addLogoutTab() {
-        JButton btnLogout = new JButton("Đăng xuất");
-        btnLogout.addActionListener(e -> showLoginTab());
-
-        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        logoutPanel.add(btnLogout);
-
-        tabbedPane.addTab("Đăng xuất", logoutPanel);
+        tabbedPane.add("Giáo viên Tương tác", new TeacherInteractionPanel(teacher));
     }
 
     public void showLoginTab() {
         tabbedPane.removeAll();
-        DataManager.currentLoggedInID = null;
-    
-        // Khởi tạo lại các panel như ban đầu
+
         loginPanel = new LoginPanel(this);
+        adminLoginPanel = new AdminLoginPanel(this);
         studentPanel = new StudentPanel();
         subjectPanel = new SubjectPanel();
         teacherManagementPanel = new TeacherManagementPanel();
-    
-        // Thêm lại tất cả các tab như lúc mới mở app
+
         tabbedPane.addTab("Đăng nhập", loginPanel);
+        tabbedPane.addTab("Admin Login", adminLoginPanel);
+
         tabbedPane.addTab("Sinh viên", studentPanel);
         tabbedPane.addTab("Môn học", subjectPanel);
         tabbedPane.addTab("Quản lý giáo viên", teacherManagementPanel);
-    
-        tabbedPane.setSelectedIndex(0); // Chọn tab Đăng nhập
-    }
-    
 
-    public static void main(String[] args) {
-        new MainFrame();
+        setAdminTabsVisible(false);
+
+        tabbedPane.setSelectedIndex(0);
+    }
+
+    public void setAdminTabsVisible(boolean visible) {
+        // visible=true => enable 3 tab (Sinh viên, Môn học, Quản lý giáo viên)
+        // visible=false => disable
+        // Tab thứ tự: 0=Đăng nhập, 1=Admin Login, 2=Sinh viên, 3=Môn học, 4=Quản lý giáo viên
+        tabbedPane.setEnabledAt(2, visible);
+        tabbedPane.setEnabledAt(3, visible);
+        tabbedPane.setEnabledAt(4, visible);
+    }
+
+    public void adminLoggedIn() {
+        // Admin login success
+        setAdminTabsVisible(true);
+        tabbedPane.setSelectedIndex(2); // Chuyển sang tab "Sinh viên" hoặc tùy ý
     }
 }
