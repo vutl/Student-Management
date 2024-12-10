@@ -5,9 +5,15 @@ import java.awt.event.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.Comparator;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import models.*;
+
+import models.ClassSection;
+import models.ClassSession;
+import models.Student;
+import models.Subject;
+import models.Teacher;
 import utils.DataManager;
 
 public class TeacherInteractionPanel extends JPanel {
@@ -21,7 +27,8 @@ public class TeacherInteractionPanel extends JPanel {
     private JComboBox<ClassSection> cbClassSection;
     private JTable studentTable;
     private DefaultTableModel studentTableModel;
-    private JButton btnSetMidterm, btnSetFinal;
+    private JButton btnSetMidterm, btnSetFinal, btnFinishClass;
+    private JButton btnAddSession, btnViewSessions;
 
     public TeacherInteractionPanel(Teacher teacher) {
         this.teacher = teacher;
@@ -29,7 +36,7 @@ public class TeacherInteractionPanel extends JPanel {
 
         cbClassSection = new JComboBox<>();
 
-        JPanel createClassPanel = new JPanel(new GridLayout(3, 2, 5, 5));
+        JPanel createClassPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         tfClassCode = new JTextField();
         cbSubject = new JComboBox<>();
         for (Subject s : DataManager.subjectList) {
@@ -41,7 +48,7 @@ public class TeacherInteractionPanel extends JPanel {
         createClassPanel.add(tfClassCode);
         createClassPanel.add(new JLabel("Chọn môn học:"));
         createClassPanel.add(cbSubject);
-        createClassPanel.add(new JLabel());
+        createClassPanel.add(new JLabel(""));
         createClassPanel.add(btnCreateClass);
 
         btnCreateClass.addActionListener(e -> createClass());
@@ -64,8 +71,8 @@ public class TeacherInteractionPanel extends JPanel {
         studentSessionPanel.add(studentScrollPane, BorderLayout.CENTER);
 
         JPanel sessionButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        JButton btnAddSession = new JButton("Thêm buổi học");
-        JButton btnViewSessions = new JButton("Xem buổi học");
+        btnAddSession = new JButton("Thêm buổi học");
+        btnViewSessions = new JButton("Xem buổi học");
         sessionButtonPanel.add(btnAddSession);
         sessionButtonPanel.add(btnViewSessions);
 
@@ -74,15 +81,18 @@ public class TeacherInteractionPanel extends JPanel {
         btnAddSession.addActionListener(e -> showAddSessionDialog());
         btnViewSessions.addActionListener(e -> viewSessions());
 
-        // Thêm nút nhập điểm
+        // Nút nhập điểm
         JPanel gradePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         btnSetMidterm = new JButton("Nhập điểm Midterm");
         btnSetFinal = new JButton("Nhập điểm Final");
+        btnFinishClass = new JButton("Kết thúc lớp học");
         gradePanel.add(btnSetMidterm);
         gradePanel.add(btnSetFinal);
+        gradePanel.add(btnFinishClass);
 
         btnSetMidterm.addActionListener(e -> setMidtermScore());
         btnSetFinal.addActionListener(e -> setFinalScore());
+        btnFinishClass.addActionListener(e -> finishClass());
 
         studentSessionPanel.add(gradePanel, BorderLayout.NORTH);
 
@@ -124,6 +134,7 @@ public class TeacherInteractionPanel extends JPanel {
         int credit = subject.getCredit();
 
         ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
+        cs.setFinished(false);
         teacher.addClass(cs);
         subject.addClassSection(cs);
         DataManager.classSectionList.add(cs);
@@ -157,23 +168,30 @@ public class TeacherInteractionPanel extends JPanel {
                 studentTableModel.addRow(new Object[]{s.getID(), s.getName(), s.getEmail()});
             }
         }
-
-        // Cập nhật trạng thái nút nhập điểm
-        updateGradeButtonsState();
+        updateButtonsState();
     }
 
-    private void updateGradeButtonsState() {
+    private void updateButtonsState() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs == null) {
             btnSetMidterm.setEnabled(false);
             btnSetFinal.setEnabled(false);
+            btnFinishClass.setEnabled(false);
+            btnAddSession.setEnabled(false);
             return;
         }
+
         int sessionCount = cs.getClassSessions().size();
-        // Midterm: chỉ sau buổi thứ 4
-        btnSetMidterm.setEnabled(sessionCount >= 4);
-        // Final: chỉ sau buổi thứ 14
-        btnSetFinal.setEnabled(sessionCount >= 14);
+        // Midterm: >=4 buổi
+        btnSetMidterm.setEnabled(!cs.isFinished() && sessionCount >= 4);
+        // Final: >=14 buổi
+        btnSetFinal.setEnabled(!cs.isFinished() && sessionCount >= 14);
+
+        // Kết thúc lớp học: từ buổi 14 trở đi
+        btnFinishClass.setEnabled(!cs.isFinished() && sessionCount >=14);
+
+        // Không cho thêm buổi nếu đã đủ 15 buổi hoặc lớp đã kết thúc
+        btnAddSession.setEnabled(!cs.isFinished() && sessionCount < 15);
     }
 
     private void showAddSessionDialog() {
@@ -183,7 +201,16 @@ public class TeacherInteractionPanel extends JPanel {
             return;
         }
 
-        // Mã đã có ở trên trong câu trả lời trước, giữ nguyên
+        if (cs.isFinished()) {
+            JOptionPane.showMessageDialog(this, "Lớp đã kết thúc, không thể thêm buổi.");
+            return;
+        }
+
+        if (cs.getClassSessions().size() >= 15) {
+            JOptionPane.showMessageDialog(this, "Đã đủ 15 buổi, không thể thêm buổi mới.");
+            return;
+        }
+
         JDialog dialog = new JDialog((Frame)SwingUtilities.getWindowAncestor(this), "Thêm buổi học", true);
         dialog.setLayout(new GridLayout(4, 2, 5, 5));
 
@@ -225,21 +252,23 @@ public class TeacherInteractionPanel extends JPanel {
                 return;
             }
 
-            ClassSection cs2 = (ClassSection) cbClassSection.getSelectedItem();
-            for (ClassSession session : cs2.getClassSessions()) {
+            for (ClassSession session : cs.getClassSessions()) {
                 if (session.getSessionID().equals(sessionID)) {
                     JOptionPane.showMessageDialog(dialog, "Mã buổi học đã tồn tại trong lớp.");
                     return;
                 }
             }
 
-            if (!isTimeSlotAvailable(cs2, startTime, endTime)) {
-                JOptionPane.showMessageDialog(dialog, "Buổi học bị trùng hoặc quá gần (phải cách ít nhất 3 tiếng) với buổi học khác.");
+            if (!isTimeSlotAvailable(cs, startTime, endTime)) {
+                JOptionPane.showMessageDialog(dialog, "Buổi học bị trùng hoặc quá gần hoặc trùng lịch với lớp khác của sinh viên.");
                 return;
             }
 
             ClassSession session = new ClassSession(sessionID, startTime, endTime);
-            cs2.addClassSession(session);
+            cs.addClassSession(session);
+            // Sắp xếp buổi học theo thời gian
+            cs.getClassSessions().sort(Comparator.comparing(ClassSession::getStartTime));
+
             DataManager.saveData();
             JOptionPane.showMessageDialog(dialog, "Thêm buổi học thành công.");
             dialog.dispose();
@@ -254,7 +283,6 @@ public class TeacherInteractionPanel extends JPanel {
     }
 
     private boolean validateSessionTime(LocalDateTime startTime, LocalDateTime endTime) {
-        // Như cũ
         if (!endTime.isAfter(startTime)) {
             JOptionPane.showMessageDialog(this, "Thời gian kết thúc phải sau thời gian bắt đầu.");
             return false;
@@ -283,27 +311,40 @@ public class TeacherInteractionPanel extends JPanel {
     }
 
     private boolean isTimeSlotAvailable(ClassSection cs, LocalDateTime newStart, LocalDateTime newEnd) {
+        // Kiểm tra trùng hoặc quá gần (dưới 3 tiếng)
         for (ClassSession existing : cs.getClassSessions()) {
             LocalDateTime exStart = existing.getStartTime();
             LocalDateTime exEnd = existing.getEndTime();
 
             boolean overlap = newStart.isBefore(exEnd) && newEnd.isAfter(exStart);
-            if (overlap) {
-                return false;
-            }
+            if (overlap) return false;
 
-            // Kiểm tra khoảng cách >=180 phút
+            // Check gap >=180 phút
             if (!exStart.isBefore(newEnd)) {
                 long diff = Duration.between(newEnd, exStart).toMinutes();
-                if (diff < 180) {
-                    return false;
-                }
+                if (diff < 180) return false;
             }
 
             if (!newStart.isBefore(exEnd)) {
                 long diff = Duration.between(exEnd, newStart).toMinutes();
-                if (diff < 180) {
-                    return false;
+                if (diff < 180) return false;
+            }
+        }
+
+        // Kiểm tra xem sinh viên trong lớp này có bị trùng giờ với buổi học khác họ tham gia?
+        for (Student st : cs.getEnrolledStudents()) {
+            // Kiểm tra tất cả lớp khác mà sinh viên tham gia
+            for (ClassSection otherCs : st.getEnrolledClasses()) {
+                if (otherCs == cs) continue;
+                for (ClassSession otherSession : otherCs.getClassSessions()) {
+                    LocalDateTime oStart = otherSession.getStartTime();
+                    LocalDateTime oEnd = otherSession.getEndTime();
+
+                    boolean overlap = newStart.isBefore(oEnd) && newEnd.isAfter(oStart);
+                    if (overlap) {
+                        // Trùng giờ
+                        return false;
+                    }
                 }
             }
         }
@@ -311,6 +352,7 @@ public class TeacherInteractionPanel extends JPanel {
     }
 
     private void viewSessions() {
+        // Chỉ xem attendance không chỉnh
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn lớp học trước.");
@@ -329,28 +371,15 @@ public class TeacherInteractionPanel extends JPanel {
             });
         }
 
-        int selectedOption = JOptionPane.showConfirmDialog(this, new JScrollPane(sessionTable), "Chọn buổi học để xem điểm danh", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (selectedOption == JOptionPane.OK_OPTION) {
-            int selectedRow = sessionTable.getSelectedRow();
-            if (selectedRow >= 0) {
-                String sessionID = (String) sessionTableModel.getValueAt(selectedRow, 0);
-                ClassSession session = DataManager.findClassSession(cs, sessionID);
-                if (session != null) {
-                    JFrame sessionFrame = new JFrame("Điểm danh - Buổi " + sessionID);
-                    sessionFrame.setSize(600, 400);
-                    sessionFrame.setLocationRelativeTo(null);
-                    sessionFrame.add(new ClassSessionPanel(cs, session));
-                    sessionFrame.setVisible(true);
-                }
-            }
-        }
+        JOptionPane.showMessageDialog(this, new JScrollPane(sessionTable), "Danh sách buổi học (Xem attendance bằng ClassSessionPanel)", JOptionPane.INFORMATION_MESSAGE);
+        // Có thể code mở ClassSessionPanel khi double click, nhưng bạn nói chỉ xem info, ta dừng ở đây
     }
 
     private void setMidtermScore() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs == null) return;
-        if (cs.getClassSessions().size() < 4) {
-            JOptionPane.showMessageDialog(this, "Chưa thể nhập điểm midterm (cần >=4 buổi).");
+        if (cs.getClassSessions().size() < 4 || cs.isFinished()) {
+            JOptionPane.showMessageDialog(this, "Không thể nhập điểm midterm (cần >=4 buổi và lớp chưa kết thúc).");
             return;
         }
 
@@ -360,8 +389,8 @@ public class TeacherInteractionPanel extends JPanel {
     private void setFinalScore() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs == null) return;
-        if (cs.getClassSessions().size() < 14) {
-            JOptionPane.showMessageDialog(this, "Chưa thể nhập điểm final (cần >=14 buổi).");
+        if (cs.getClassSessions().size() < 14 || cs.isFinished()) {
+            JOptionPane.showMessageDialog(this, "Không thể nhập điểm final (cần >=14 buổi và lớp chưa kết thúc).");
             return;
         }
 
@@ -369,11 +398,20 @@ public class TeacherInteractionPanel extends JPanel {
     }
 
     private void showGradeDialog(ClassSection cs, boolean midterm) {
-        // Chọn sinh viên
         JTable tempTable = new JTable();
         DefaultTableModel tempModel = new DefaultTableModel(new String[]{"Mã SV","Tên"},0);
         tempTable.setModel(tempModel);
         for (Student s : cs.getEnrolledStudents()) {
+            // Nếu vắng >3 buổi => fail luôn, không nhập điểm
+            int absences=0;
+            for (ClassSession session: cs.getClassSessions()) {
+                Boolean p = session.getAttendanceRecords().get(s.getID());
+                if (p == null || !p) absences++;
+            }
+            if (absences>3) {
+                continue; // Vắng >3 không cho nhập điểm
+            }
+
             tempModel.addRow(new Object[]{s.getID(), s.getName()});
         }
 
@@ -404,16 +442,54 @@ public class TeacherInteractionPanel extends JPanel {
                     currentFinal = score;
                 }
 
-                // passed tạm thời tính sau khi đủ 15 buổi
-                boolean passed = st.isPassed(cs.getClassCode());
-                st.setGradeForClass(cs.getClassCode(), currentMid, currentFinal, passed);
-
+                // Chưa tính passed trừ khi kết thúc lớp
+                st.setGradeForClass(cs.getClassCode(), currentMid, currentFinal, st.isPassed(cs.getClassCode()));
                 DataManager.saveData();
                 JOptionPane.showMessageDialog(this, "Nhập điểm thành công.");
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Điểm phải là số.");
             }
         }
+    }
+
+    private void finishClass() {
+        ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
+        if (cs == null) return;
+        if (cs.isFinished()) {
+            JOptionPane.showMessageDialog(this, "Lớp đã kết thúc rồi.");
+            return;
+        }
+
+        if (cs.getClassSessions().size() < 14) {
+            JOptionPane.showMessageDialog(this, "Phải có ít nhất 14 buổi để kết thúc lớp.");
+            return;
+        }
+
+        // Khi kết thúc lớp, tính điểm
+        cs.setFinished(true);
+        DataManager.calculateGrades(cs);
+
+        // Hiển thị bảng thông tin lớp học: điểm danh, số buổi, điểm, trượt/pass
+        StringBuilder sb = new StringBuilder("Kết quả lớp: " + cs.getClassCode() + "\n");
+        sb.append("Số buổi: ").append(cs.getClassSessions().size()).append("\n");
+        for (Student s : cs.getEnrolledStudents()) {
+            int absences=0;
+            for (ClassSession session: cs.getClassSessions()) {
+                Boolean p = session.getAttendanceRecords().get(s.getID());
+                if (p == null || !p) absences++;
+            }
+            double mid = s.getMidterm(cs.getClassCode());
+            double fin = s.getFinal(cs.getClassCode());
+            boolean pass = s.isPassed(cs.getClassCode());
+            sb.append("SV: ").append(s.getID()).append(", Absences: ").append(absences)
+                    .append(", Midterm: ").append(mid>=0?mid:"N/A")
+                    .append(", Final: ").append(fin>=0?fin:"N/A")
+                    .append(", Passed: ").append(pass).append("\n");
+        }
+
+        JOptionPane.showMessageDialog(this, sb.toString(), "Kết thúc lớp học", JOptionPane.INFORMATION_MESSAGE);
+        DataManager.saveData();
+        updateButtonsState();
     }
 
     private void removeStudent() {
@@ -427,6 +503,13 @@ public class TeacherInteractionPanel extends JPanel {
         DefaultTableModel tempModel = new DefaultTableModel(new String[]{"Mã SV", "Tên", "Email"}, 0);
         tempTable.setModel(tempModel);
         for (Student s : cs.getEnrolledStudents()) {
+            // Kiểm tra tham gia >=3 buổi?
+            int participated =0;
+            for (ClassSession session: cs.getClassSessions()) {
+                Boolean p = session.getAttendanceRecords().get(s.getID());
+                if (p!=null && p) participated++;
+            }
+            if (participated>=3) continue; // Không cho vào bảng nếu không drop được
             tempModel.addRow(new Object[]{s.getID(), s.getName(), s.getEmail()});
         }
 
@@ -437,17 +520,6 @@ public class TeacherInteractionPanel extends JPanel {
                 String studentID = (String) tempModel.getValueAt(selectedRow, 0);
                 Student student = DataManager.findStudentByID(studentID);
                 if (student != null) {
-                    // Check if student participated >=3 sessions?
-                    int participated = 0;
-                    for (ClassSession session : cs.getClassSessions()) {
-                        Boolean present = session.getAttendanceRecords().get(student.getID());
-                        if (present != null && present) participated++;
-                    }
-                    if (participated >= 3) {
-                        JOptionPane.showMessageDialog(this, "Sinh viên đã tham gia >=3 buổi, không thể drop.");
-                        return;
-                    }
-
                     cs.removeStudent(student);
                     student.removeClass(cs);
                     student.setRemainingCredits(student.getRemainingCredits() + cs.getCredit());

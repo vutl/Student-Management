@@ -12,7 +12,7 @@ public class DataManager {
     public static List<Student> studentList = new ArrayList<>();
     public static List<Subject> subjectList = new ArrayList<>();
     public static List<ClassSection> classSectionList = new ArrayList<>();
-    public static String currentLoggedInID = null; // Biến lưu trữ ID hiện tại
+    public static String currentLoggedInID = null;
 
     private static final DateTimeFormatter SESSION_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -69,6 +69,11 @@ public class DataManager {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
+                // Nếu có 5 phần tử thì phần tử thứ 5 là finished
+                boolean finished = false;
+                if (parts.length == 5) {
+                    finished = Boolean.parseBoolean(parts[4]);
+                }
                 if (parts.length >= 4) {
                     String classCode = parts[0];
                     String subjectID = parts[1];
@@ -79,6 +84,7 @@ public class DataManager {
                     Teacher teacher = findTeacherByID(teacherID);
                     if (subject != null && teacher != null) {
                         ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
+                        cs.setFinished(finished);
                         classSectionList.add(cs);
                         subject.addClassSection(cs);
                         teacher.addClass(cs);
@@ -89,13 +95,8 @@ public class DataManager {
             System.out.println("Không thể tải dữ liệu lớp học: " + e.getMessage());
         }
 
-        // Load ClassSessions
         loadClassSessions();
-
-        // Load Attendance
         loadAttendance();
-
-        // Load Grades
         loadGrades();
     }
 
@@ -180,42 +181,31 @@ public class DataManager {
         }
     }
 
-    public static void calculateGrades() {
-        // Điểm danh không còn tính điểm, chỉ xác định fail nếu vắng >3
-        // midterm và final do giáo viên nhập (sau buổi 4 và 14)
-        // finalGrade = midterm*0.3 + final*0.7
-        // >=70 pass, <70 fail (trừ khi vắng >3 buổi => fail)
-        // Lưu vào grades.txt
-
-        for (ClassSection cs : classSectionList) {
-            int totalSessions = cs.getClassSessions().size();
-            if (totalSessions < 15) continue; // Chỉ tính khi đủ 15 buổi
-
-            for (Student s : cs.getEnrolledStudents()) {
-                int absences = 0;
-                for (ClassSession session : cs.getClassSessions()) {
-                    Boolean present = session.getAttendanceRecords().get(s.getID());
-                    if (present == null || !present) {
-                        absences++;
-                    }
-                }
-
-                double midterm = s.getMidterm(cs.getClassCode());
-                double fin = s.getFinal(cs.getClassCode());
-
-                boolean passed;
-                if (absences > 3) {
-                    // Vắng >3 => fail
-                    passed = false;
-                } else {
-                    double finalGrade = midterm*0.3 + fin*0.7;
-                    passed = finalGrade >= 70.0;
-                }
-
-                s.setGradeForClass(cs.getClassCode(), midterm, fin, passed);
+    public static void calculateGrades(ClassSection cs) {
+        // Khi kết thúc lớp học mới tính pass/fail
+        // Nếu lớp không đủ 14 hoặc 15 buổi, cứ tính theo số buổi thực tế
+        int totalSessions = cs.getClassSessions().size();
+        for (Student s : cs.getEnrolledStudents()) {
+            int absences = 0;
+            for (ClassSession session : cs.getClassSessions()) {
+                Boolean isPresent = session.getAttendanceRecords().get(s.getID());
+                if (isPresent == null || !isPresent) absences++;
             }
+            double midterm = s.getMidterm(cs.getClassCode());
+            double fin = s.getFinal(cs.getClassCode());
+            boolean passed;
+            // Nếu vắng >3 buổi => fail ngay
+            if (absences > 3) {
+                passed = false;
+            } else {
+                // Nếu chưa có đủ điểm midterm/final, coi như 0
+                if (midterm <0) midterm=0;
+                if (fin<0) fin=0;
+                double finalGrade = midterm*0.3 + fin*0.7;
+                passed = finalGrade >=70;
+            }
+            s.setGradeForClass(cs.getClassCode(), midterm, fin, passed);
         }
-
         saveData();
     }
 
@@ -253,20 +243,15 @@ public class DataManager {
         // Save ClassSections
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt"))) {
             for (ClassSection cs : classSectionList) {
-                bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit());
+                bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit() + "," + cs.isFinished());
                 bw.newLine();
             }
         } catch (IOException e) {
             System.out.println("Không thể lưu dữ liệu lớp học: " + e.getMessage());
         }
 
-        // Save ClassSessions
         saveClassSessions();
-
-        // Save Attendance
         saveAttendance();
-
-        // Save Grades
         saveGrades();
     }
 

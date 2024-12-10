@@ -10,6 +10,7 @@ public class ClassSection {
     private int credit;
     private List<Student> enrolledStudents;
     private List<ClassSession> classSessions;
+    private boolean finished; // Thêm thuộc tính này
 
     public ClassSection(String classCode, Subject subject, Teacher teacher, int credit) {
         this.classCode = classCode;
@@ -18,6 +19,7 @@ public class ClassSection {
         this.credit = credit;
         this.enrolledStudents = new ArrayList<>();
         this.classSessions = new ArrayList<>();
+        this.finished = false; // Mặc định là chưa kết thúc
     }
 
     public String getClassCode() {
@@ -54,6 +56,15 @@ public class ClassSection {
 
     public void addClassSession(ClassSession session) {
         classSessions.add(session);
+    }
+
+    // Thêm getter setter cho finished
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 
     @Override
