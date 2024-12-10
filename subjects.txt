@@ -1,2 +1,1 @@
-MTH1114,Giai tich,3
-MTH1112,Dai So,3
+MTH1114,Giai tich 2,3

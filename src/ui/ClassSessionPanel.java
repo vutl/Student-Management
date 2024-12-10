@@ -1,10 +1,11 @@
 package ui;
 
-import java.awt.*;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import models.*;
 import utils.DataManager;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 
 public class ClassSessionPanel extends JPanel {
     private ClassSection classSection;
@@ -29,7 +30,7 @@ public class ClassSessionPanel extends JPanel {
 
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 2; 
+                return column == 2;
             }
         };
         attendanceTable = new JTable(attendanceTableModel);
@@ -54,15 +55,10 @@ public class ClassSessionPanel extends JPanel {
         for (int i = 0; i < attendanceTableModel.getRowCount(); i++) {
             String studentID = (String) attendanceTableModel.getValueAt(i, 0);
             Boolean isPresent = (Boolean) attendanceTableModel.getValueAt(i, 2);
+            if (isPresent == null) isPresent = false;
             session.markAttendance(studentID, isPresent);
         }
         DataManager.saveData();
         JOptionPane.showMessageDialog(this, "Đã lưu điểm danh.");
-
-        // Nếu đã đủ 15 buổi, tính điểm
-        if (classSection.getClassSessions().size() == 15) {
-            DataManager.calculateGrades();
-            JOptionPane.showMessageDialog(this, "Đã tính điểm và cập nhật trạng thái môn học.");
-        }
     }
 }

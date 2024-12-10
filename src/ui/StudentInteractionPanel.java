@@ -1,8 +1,12 @@
 package ui;
 
 import java.awt.*;
+import java.awt.event.*;
+import java.time.format.DateTimeFormatter;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
 import models.*;
 import utils.DataManager;
 
@@ -16,7 +20,7 @@ public class StudentInteractionPanel extends JPanel {
     private JLabel lblTeacherName;
     private JLabel lblTotalStudents;
     private JLabel lblRemainingCredits;
-    private JButton btnRegister, btnCancel, btnViewGrades, btnLogout;
+    private JButton btnRegister, btnCancel, btnViewGrades, btnViewAttendance, btnLogout;
 
     public StudentInteractionPanel(Student student) {
         this.student = student;
@@ -54,18 +58,21 @@ public class StudentInteractionPanel extends JPanel {
 
         btnRegister = new JButton("Đăng ký");
         btnCancel = new JButton("Hủy đăng ký");
-        btnViewGrades = new JButton("Xem điểm và trạng thái môn học");
+        btnViewGrades = new JButton("Xem điểm");
+        btnViewAttendance = new JButton("Xem Attendance");
         btnLogout = new JButton("Đăng xuất");
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         buttonPanel.add(btnRegister);
         buttonPanel.add(btnCancel);
         buttonPanel.add(btnViewGrades);
+        buttonPanel.add(btnViewAttendance);
         buttonPanel.add(btnLogout);
 
         btnRegister.addActionListener(e -> registerClass());
         btnCancel.addActionListener(e -> cancelClass());
         btnViewGrades.addActionListener(e -> viewGrades());
+        btnViewAttendance.addActionListener(e -> viewAttendance());
         btnLogout.addActionListener(e -> logout());
 
         add(selectionPanel, BorderLayout.NORTH);
@@ -90,7 +97,17 @@ public class StudentInteractionPanel extends JPanel {
         Subject selectedSubject = (Subject) cbSubject.getSelectedItem();
         if (selectedSubject != null) {
             for (ClassSection cs : selectedSubject.getClassSections()) {
-                cbClassSection.addItem(cs);
+                // Kiểm tra sinh viên đã đăng ký lớp nào của môn này chưa
+                boolean alreadyEnrolled = false;
+                for (ClassSection enrolledCs : student.getEnrolledClasses()) {
+                    if (enrolledCs.getSubject().getSubjectID().equals(selectedSubject.getSubjectID())) {
+                        alreadyEnrolled = true;
+                        break;
+                    }
+                }
+                if (!alreadyEnrolled) {
+                    cbClassSection.addItem(cs);
+                }
             }
         }
     }
@@ -139,14 +156,14 @@ public class StudentInteractionPanel extends JPanel {
             String classCode = tableModel.getValueAt(selectedRow, 0).toString();
             ClassSection cs = DataManager.findClassSectionByCode(classCode);
             if (cs != null) {
-                int attendanceCount = 0;
+                // Kiểm tra đã tham gia >=3 buổi?
+                int participated = 0;
                 for (ClassSession session : cs.getClassSessions()) {
-                    if (session.getAttendanceRecords().getOrDefault(student.getID(), false)) {
-                        attendanceCount++;
-                    }
+                    Boolean present = session.getAttendanceRecords().get(student.getID());
+                    if (present != null && present) participated++;
                 }
-                if (attendanceCount >= 3) {
-                    JOptionPane.showMessageDialog(this, "Bạn đã tham gia đủ buổi học, không thể hủy đăng ký.");
+                if (participated >= 3) {
+                    JOptionPane.showMessageDialog(this, "Bạn đã tham gia >=3 buổi, không thể hủy đăng ký.");
                     return;
                 }
 
@@ -163,28 +180,59 @@ public class StudentInteractionPanel extends JPanel {
     }
 
     private void viewGrades() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Môn học đã qua:\n");
-        for (String subjectID : student.getPassedSubjects()) {
-            Subject subject = DataManager.findSubjectByID(subjectID);
-            if (subject != null) {
-                sb.append(subject.getTitle()).append("\n");
+        // Hiển thị điểm midterm, final, và trạng thái pass/fail cho các lớp đã đủ 15 buổi
+        StringBuilder sb = new StringBuilder("Bảng điểm:\n");
+        for (ClassSection cs : student.getEnrolledClasses()) {
+            String classCode = cs.getClassCode();
+            double mid = student.getMidterm(classCode);
+            double fin = student.getFinal(classCode);
+            boolean passed = student.isPassed(classCode);
+            if (mid >=0 && fin>=0) {
+                double finalGrade = mid*0.3 + fin*0.7;
+                sb.append("Lớp: ").append(classCode).append(", Midterm: ").append(mid)
+                        .append(", Final: ").append(fin)
+                        .append(", FinalGrade: ").append(finalGrade)
+                        .append(", Passed: ").append(passed).append("\n");
+            } else {
+                sb.append("Lớp: ").append(classCode).append(" - Chưa đủ dữ liệu điểm.\n");
             }
         }
-        sb.append("\nMôn học đã trượt:\n");
-        for (String subjectID : student.getFailedSubjects()) {
-            Subject subject = DataManager.findSubjectByID(subjectID);
-            if (subject != null) {
-                sb.append(subject.getTitle()).append("\n");
-            }
+        JOptionPane.showMessageDialog(this, sb.toString(), "Điểm", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void viewAttendance() {
+        // Hiển thị attendance cho các lớp đã đăng ký
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lớp trong bảng bên dưới để xem attendance.");
+            return;
         }
-        JOptionPane.showMessageDialog(this, sb.toString(), "Điểm và Trạng thái môn học", JOptionPane.INFORMATION_MESSAGE);
+        String classCode = tableModel.getValueAt(selectedRow, 0).toString();
+        ClassSection cs = DataManager.findClassSectionByCode(classCode);
+        if (cs == null) return;
+
+        String[] col = {"Mã buổi", "Bắt đầu", "Kết thúc", "Có mặt?"};
+        DefaultTableModel attModel = new DefaultTableModel(col,0);
+        JTable attTable = new JTable(attModel);
+
+        for (ClassSession session : cs.getClassSessions()) {
+            Boolean present = session.getAttendanceRecords().get(student.getID());
+            String presentStr = (present != null && present) ? "Có" : "Vắng";
+            attModel.addRow(new Object[]{
+                    session.getSessionID(),
+                    session.getStartTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    session.getEndTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    presentStr
+            });
+        }
+
+        JOptionPane.showMessageDialog(this, new JScrollPane(attTable), "Attendance: " + classCode, JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void logout() {
         JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
         if (frame instanceof MainFrame) {
-            ((MainFrame) frame).showLoginTab();;
+            ((MainFrame) frame).showLoginTab();
         }
     }
 }

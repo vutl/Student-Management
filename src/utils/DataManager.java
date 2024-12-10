@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-
 import models.*;
 
 public class DataManager {
@@ -17,7 +16,6 @@ public class DataManager {
 
     private static final DateTimeFormatter SESSION_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    // Phương thức loadData() để tải dữ liệu từ file
     public static void loadData() {
         teacherList.clear();
         studentList.clear();
@@ -93,6 +91,12 @@ public class DataManager {
 
         // Load ClassSessions
         loadClassSessions();
+
+        // Load Attendance
+        loadAttendance();
+
+        // Load Grades
+        loadGrades();
     }
 
     private static void loadClassSessions() {
@@ -121,29 +125,100 @@ public class DataManager {
         }
     }
 
+    private static void loadAttendance() {
+        File file = new File("attendance.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 4) {
+                    String classCode = parts[0];
+                    String sessionID = parts[1];
+                    String studentID = parts[2];
+                    boolean present = Boolean.parseBoolean(parts[3]);
+
+                    ClassSection cs = findClassSectionByCode(classCode);
+                    if (cs != null) {
+                        ClassSession session = findClassSession(cs, sessionID);
+                        if (session != null) {
+                            session.markAttendance(studentID, present);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể tải dữ liệu attendance: " + e.getMessage());
+        }
+    }
+
+    private static void loadGrades() {
+        File file = new File("grades.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 5) {
+                    String studentID = parts[0];
+                    String classCode = parts[1];
+                    double midterm = Double.parseDouble(parts[2]);
+                    double fin = Double.parseDouble(parts[3]);
+                    boolean passed = Boolean.parseBoolean(parts[4]);
+
+                    Student st = findStudentByID(studentID);
+                    ClassSection cs = findClassSectionByCode(classCode);
+                    if (st != null && cs != null) {
+                        st.setGradeForClass(cs.getClassCode(), midterm, fin, passed);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể tải dữ liệu điểm: " + e.getMessage());
+        }
+    }
+
     public static void calculateGrades() {
+        // Điểm danh không còn tính điểm, chỉ xác định fail nếu vắng >3
+        // midterm và final do giáo viên nhập (sau buổi 4 và 14)
+        // finalGrade = midterm*0.3 + final*0.7
+        // >=70 pass, <70 fail (trừ khi vắng >3 buổi => fail)
+        // Lưu vào grades.txt
+
         for (ClassSection cs : classSectionList) {
+            int totalSessions = cs.getClassSessions().size();
+            if (totalSessions < 15) continue; // Chỉ tính khi đủ 15 buổi
+
             for (Student s : cs.getEnrolledStudents()) {
-                int absentCount = 0;
+                int absences = 0;
                 for (ClassSession session : cs.getClassSessions()) {
-                    Boolean isPresent = session.getAttendanceRecords().get(s.getID());
-                    if (isPresent != null && !isPresent) {
-                        absentCount++;
+                    Boolean present = session.getAttendanceRecords().get(s.getID());
+                    if (present == null || !present) {
+                        absences++;
                     }
                 }
 
-                // Quy định: Trượt nếu vắng mặt >= 5 buổi
-                if (absentCount >= 5) {
-                    s.getFailedSubjects().add(cs.getSubject().getSubjectID());
+                double midterm = s.getMidterm(cs.getClassCode());
+                double fin = s.getFinal(cs.getClassCode());
+
+                boolean passed;
+                if (absences > 3) {
+                    // Vắng >3 => fail
+                    passed = false;
                 } else {
-                    s.getPassedSubjects().add(cs.getSubject().getSubjectID());
+                    double finalGrade = midterm*0.3 + fin*0.7;
+                    passed = finalGrade >= 70.0;
                 }
+
+                s.setGradeForClass(cs.getClassCode(), midterm, fin, passed);
             }
         }
-        saveData(); // Lưu dữ liệu sau khi tính điểm
+
+        saveData();
     }
 
-    // Phương thức saveData() để lưu dữ liệu vào file
     public static void saveData() {
         // Save Teachers
         try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
@@ -187,6 +262,12 @@ public class DataManager {
 
         // Save ClassSessions
         saveClassSessions();
+
+        // Save Attendance
+        saveAttendance();
+
+        // Save Grades
+        saveGrades();
     }
 
     private static void saveClassSessions() {
@@ -205,7 +286,49 @@ public class DataManager {
         }
     }
 
-    // Phương thức tìm sinh viên theo ID
+    private static void saveAttendance() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("attendance.txt"))) {
+            for (ClassSection cs : classSectionList) {
+                for (ClassSession session : cs.getClassSessions()) {
+                    for (var entry : session.getAttendanceRecords().entrySet()) {
+                        String studentID = entry.getKey();
+                        boolean present = entry.getValue();
+                        String line = cs.getClassCode() + "," + session.getSessionID() + "," + studentID + "," + present;
+                        bw.write(line);
+                        bw.newLine();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu attendance: " + e.getMessage());
+        }
+    }
+
+    private static void saveGrades() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("grades.txt"))) {
+            for (Student s : studentList) {
+                for (var entry : s.getGrades().entrySet()) {
+                    String classCode = entry.getKey();
+                    Student.GradeInfo info = entry.getValue();
+                    String line = s.getID() + "," + classCode + "," + info.midterm + "," + info.finalExam + "," + info.passed;
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu điểm: " + e.getMessage());
+        }
+    }
+
+    public static ClassSession findClassSession(ClassSection cs, String sessionID) {
+        for (ClassSession session : cs.getClassSessions()) {
+            if (session.getSessionID().equals(sessionID)) {
+                return session;
+            }
+        }
+        return null;
+    }
+
     public static Student findStudentByID(String id) {
         for (Student s : studentList) {
             if (s.getID().equals(id)) {
@@ -215,7 +338,6 @@ public class DataManager {
         return null;
     }
 
-    // Phương thức tìm giáo viên theo ID
     public static Teacher findTeacherByID(String id) {
         for (Teacher t : teacherList) {
             if (t.getID().equals(id)) {
@@ -225,7 +347,6 @@ public class DataManager {
         return null;
     }
 
-    // Phương thức tìm môn học theo ID
     public static Subject findSubjectByID(String id) {
         for (Subject s : subjectList) {
             if (s.getSubjectID().equals(id)) {
@@ -235,7 +356,6 @@ public class DataManager {
         return null;
     }
 
-    // Bổ sung phương thức tìm ClassSection theo mã lớp
     public static ClassSection findClassSectionByCode(String code) {
         for (ClassSection cs : classSectionList) {
             if (cs.getClassCode().equals(code)) {
