@@ -91,8 +91,8 @@ public class StudentPanel extends JPanel {
             }
         }
 
-        // tạo student mới với remainingCredits mặc định là 30
-        Student student = new Student(studentID, name, email, 30);
+        // tạo student mới với remainingCredits mặc định là 12
+        Student student = new Student(studentID, name, email, 12);
         DataManager.studentList.add(student);
         tableModel.addRow(new Object[]{studentID, name, "", email});
         DataManager.saveData();

@@ -1,8 +1,11 @@
 package utils;
 
 import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
 import models.*;
 
 public class DataManager {
@@ -12,9 +15,10 @@ public class DataManager {
     public static List<ClassSection> classSectionList = new ArrayList<>();
     public static String currentLoggedInID = null; // Biến lưu trữ ID hiện tại
 
+    private static final DateTimeFormatter SESSION_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     // Phương thức loadData() để tải dữ liệu từ file
     public static void loadData() {
-        // Xóa danh sách trước khi load để tránh trùng lặp dữ liệu
         teacherList.clear();
         studentList.clear();
         subjectList.clear();
@@ -87,7 +91,34 @@ public class DataManager {
             System.out.println("Không thể tải dữ liệu lớp học: " + e.getMessage());
         }
 
-        // Nếu cần, bạn có thể load thêm dữ liệu về ClassSession, attendance...
+        // Load ClassSessions
+        loadClassSessions();
+    }
+
+    private static void loadClassSessions() {
+        File file = new File("class_sessions.txt");
+        if (!file.exists()) return;
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 4) {
+                    String classCode = parts[0];
+                    String sessionID = parts[1];
+                    LocalDateTime startTime = LocalDateTime.parse(parts[2], SESSION_FORMATTER);
+                    LocalDateTime endTime = LocalDateTime.parse(parts[3], SESSION_FORMATTER);
+
+                    ClassSection cs = findClassSectionByCode(classCode);
+                    if (cs != null) {
+                        ClassSession session = new ClassSession(sessionID, startTime, endTime);
+                        cs.addClassSession(session);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể tải dữ liệu buổi học: " + e.getMessage());
+        }
     }
 
     public static void calculateGrades() {
@@ -153,7 +184,25 @@ public class DataManager {
         } catch (IOException e) {
             System.out.println("Không thể lưu dữ liệu lớp học: " + e.getMessage());
         }
-        // Có thể lưu thêm enrollment, session... tùy yêu cầu.
+
+        // Save ClassSessions
+        saveClassSessions();
+    }
+
+    private static void saveClassSessions() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("class_sessions.txt"))) {
+            for (ClassSection cs : classSectionList) {
+                for (ClassSession session : cs.getClassSessions()) {
+                    String line = cs.getClassCode() + "," + session.getSessionID() + ","
+                            + session.getStartTime().format(SESSION_FORMATTER) + ","
+                            + session.getEndTime().format(SESSION_FORMATTER);
+                    bw.write(line);
+                    bw.newLine();
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Không thể lưu dữ liệu buổi học: " + e.getMessage());
+        }
     }
 
     // Phương thức tìm sinh viên theo ID
@@ -186,7 +235,7 @@ public class DataManager {
         return null;
     }
 
-    // Bổ sung phương thức tìm ClassSection theo mã lớp để tương thích với code UI
+    // Bổ sung phương thức tìm ClassSection theo mã lớp
     public static ClassSection findClassSectionByCode(String code) {
         for (ClassSection cs : classSectionList) {
             if (cs.getClassCode().equals(code)) {

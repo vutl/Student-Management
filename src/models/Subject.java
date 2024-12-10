@@ -40,8 +40,22 @@ public class Subject {
         classSections.remove(cs);
     }
 
+    // Thêm các setter ở đây
+    public void setSubjectID(String subjectID) {
+        this.subjectID = subjectID;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setCredit(int credit) {
+        this.credit = credit;
+    }
+
     @Override
     public String toString() {
         return title + " (" + credit + " tín chỉ)";
     }
 }
+
