@@ -22,8 +22,12 @@ public class TeacherInteractionPanel extends JPanel {
 
     public TeacherInteractionPanel(Teacher teacher) {
         this.teacher = teacher;
-        System.out.println("Teacher: " + teacher); // Kiểm tra teacher null hay không
+        System.out.println("Teacher: " + teacher);
+
         setLayout(new BorderLayout(10, 10));
+
+        // Initializing components
+        cbClassSection = new JComboBox<>();
 
         // Panel tạo lớp
         JPanel createClassPanel = new JPanel(new GridLayout(2, 3, 5, 5));
@@ -36,7 +40,7 @@ public class TeacherInteractionPanel extends JPanel {
 
         createClassPanel.add(new JLabel("Mã lớp:"));
         createClassPanel.add(tfClassCode);
-        createClassPanel.add(new JLabel()); 
+        createClassPanel.add(new JLabel());
         createClassPanel.add(new JLabel("Chọn môn học:"));
         createClassPanel.add(cbSubject);
         createClassPanel.add(btnCreateClass);
@@ -51,7 +55,6 @@ public class TeacherInteractionPanel extends JPanel {
 
         // Panel chọn lớp
         JPanel classSelectionPanel = new JPanel(new BorderLayout(5, 5));
-        cbClassSection = new JComboBox<>();
         loadTeachingClassesComboBox();
         cbClassSection.addActionListener(e -> loadEnrolledStudents());
 
