@@ -375,10 +375,6 @@ public class TeacherInteractionPanel extends JPanel {
             });
         }
 
-        // Loại bỏ chức năng double-click
-        // Thay vào đó, người dùng có thể chọn một buổi học và nhấn nút "Điểm danh" để mở bảng điểm danh
-        // Tuy nhiên, chúng ta đã thêm nút "Điểm danh" nên có thể loại bỏ phần này
-        // Nếu muốn giữ chức năng xem buổi học, chỉ cần hiển thị danh sách
 
         JOptionPane.showMessageDialog(this, new JScrollPane(sessionTable), "Danh sách buổi học", JOptionPane.INFORMATION_MESSAGE);
     }
