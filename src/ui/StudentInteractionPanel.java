@@ -111,6 +111,16 @@ public class StudentInteractionPanel extends JPanel {
         }
     }
 
+    private void loadAvailableClasses() {
+        cbClassSection.removeAllItems();
+        for (ClassSection cs : DataManager.classSectionList) {
+            // Chỉ hiển thị các lớp chưa kết thúc và sinh viên chưa đăng ký
+            if (!cs.isFinished() && !student.getEnrolledClasses().contains(cs)) {
+                cbClassSection.addItem(cs);
+            }
+        }
+    }
+
     private void updateClassInfo() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs != null) {
@@ -125,38 +135,59 @@ public class StudentInteractionPanel extends JPanel {
     private void registerClass() {
         ClassSection cs = (ClassSection) cbClassSection.getSelectedItem();
         if (cs != null) {
-            // Kiểm tra lớp đã kết thúc hoặc >=4 buổi => không đăng ký
+            // Kiểm tra lớp đã kết thúc
             if (cs.isFinished()) {
                 JOptionPane.showMessageDialog(this, "Lớp đã kết thúc, không thể đăng ký.");
                 return;
             }
-            if (cs.getClassSessions().size() >=4) {
-                JOptionPane.showMessageDialog(this, "Lớp đã có >=4 buổi, không thể đăng ký nữa.");
+
+            // Kiểm tra sinh viên không học 2 lớp cùng môn đã làm ở loadClassSections()
+            if (isAlreadyEnrolledInSameSubject(cs)) {
+                JOptionPane.showMessageDialog(this, "Bạn đã tham gia một lớp cùng môn học này.");
                 return;
             }
 
-            // Kiểm tra sinh viên không học 2 lớp cùng môn đã làm ở loadClassSections()
             // Kiểm tra trùng lịch buổi học:
             if (!checkNoTimeConflict(cs)) {
                 JOptionPane.showMessageDialog(this, "Bạn bị trùng giờ với lớp khác bạn đang học.");
                 return;
             }
 
-            if (!student.getEnrolledClasses().contains(cs)) {
-                if (student.getRemainingCredits() >= cs.getCredit()) {
-                    student.addClass(cs);
-                    cs.addStudent(student);
-                    student.setRemainingCredits(student.getRemainingCredits() - cs.getCredit());
-                    loadRegisteredClasses();
-                    JOptionPane.showMessageDialog(this, "Đăng ký thành công.");
-                    DataManager.saveData();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Không đủ số tín chỉ để đăng ký lớp này.");
-                }
-            } else {
+            // Kiểm tra nếu sinh viên đã đăng ký lớp này chưa
+            if (student.getEnrolledClasses().contains(cs)) {
                 JOptionPane.showMessageDialog(this, "Bạn đã đăng ký lớp này rồi.");
+                return;
+            }
+
+            // Kiểm tra tín chỉ
+            if (student.getRemainingCredits() < cs.getCredit()) {
+                JOptionPane.showMessageDialog(this, "Không đủ số tín chỉ để đăng ký lớp này.");
+                return;
+            }
+
+            // Thêm lớp học vào danh sách lớp của sinh viên và thêm sinh viên vào lớp học
+            student.addClass(cs);
+            cs.addStudent(student);
+            student.setRemainingCredits(student.getRemainingCredits() - cs.getCredit());
+            loadRegisteredClasses();
+            JOptionPane.showMessageDialog(this, "Đăng ký thành công.");
+            DataManager.saveData();
+
+            // Cập nhật lại danh sách lớp học có thể đăng ký
+            loadAvailableClasses();
+        } else {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn lớp học để đăng ký.");
+        }
+    }
+
+    private boolean isAlreadyEnrolledInSameSubject(ClassSection newClass) {
+        String newSubjectID = newClass.getSubject().getSubjectID();
+        for (ClassSection enrolledCs : student.getEnrolledClasses()) {
+            if (enrolledCs.getSubject().getSubjectID().equals(newSubjectID)) {
+                return true;
             }
         }
+        return false;
     }
 
     private boolean checkNoTimeConflict(ClassSection newClass) {

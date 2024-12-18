@@ -10,7 +10,7 @@ public class ClassSection {
     private int credit;
     private List<Student> enrolledStudents;
     private List<ClassSession> classSessions;
-    private boolean finished; // Thêm thuộc tính này
+    private boolean finished;
 
     public ClassSection(String classCode, Subject subject, Teacher teacher, int credit) {
         this.classCode = classCode;
@@ -43,11 +43,21 @@ public class ClassSection {
     }
 
     public void addStudent(Student s) {
-        enrolledStudents.add(s);
+        if (!enrolledStudents.contains(s)) {
+            enrolledStudents.add(s);
+            if (!s.getEnrolledClasses().contains(this)) {
+                s.addClass(this);
+            }
+        }
     }
 
     public void removeStudent(Student s) {
-        enrolledStudents.remove(s);
+        if (enrolledStudents.contains(s)) {
+            enrolledStudents.remove(s);
+            if (s.getEnrolledClasses().contains(this)) {
+                s.removeClass(this);
+            }
+        }
     }
 
     public List<ClassSession> getClassSessions() {
@@ -58,7 +68,6 @@ public class ClassSection {
         classSessions.add(session);
     }
 
-    // Thêm getter setter cho finished
     public boolean isFinished() {
         return finished;
     }
@@ -72,3 +81,5 @@ public class ClassSection {
         return classCode + " - " + subject.getTitle();
     }
 }
+
+

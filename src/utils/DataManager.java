@@ -2,9 +2,9 @@ package utils;
 
 import java.io.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import models.*;
 
 public class DataManager {
@@ -23,14 +23,16 @@ public class DataManager {
         classSectionList.clear();
 
         // Load Teachers
-        // Bây giờ thêm khoa cho giáo viên, format: ID,Name,Department,Email
+        // Format: ID,Name,Department,Email
         try (BufferedReader br = new BufferedReader(new FileReader("teachers.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 4) {
-                    Teacher teacher = new Teacher(parts[0], parts[1], parts[2], parts[3]);
-                    teacherList.add(teacher);
+                    Teacher teacher = new Teacher(parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim());
+                    if (!teacherList.contains(teacher)) { // Prevent duplicates
+                        teacherList.add(teacher);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -39,14 +41,20 @@ public class DataManager {
 
         // Load Students
         // Format: ID,Name,Age,Email,RemainingCredits
-        // Lưu ý: trước đây ko có Age, giờ thêm Age vào file (ID,Name,Age,Email,Credit)
         try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 5) {
-                    Student student = new Student(parts[0], parts[1], Integer.parseInt(parts[2]), parts[3], Integer.parseInt(parts[4]));
-                    studentList.add(student);
+                    String studentID = parts[0].trim();
+                    String name = parts[1].trim();
+                    int age = Integer.parseInt(parts[2].trim());
+                    String email = parts[3].trim();
+                    int remainingCredits = Integer.parseInt(parts[4].trim());
+                    Student student = new Student(studentID, name, age, email, remainingCredits);
+                    if (!studentList.contains(student)) { // Prevent duplicates
+                        studentList.add(student);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -59,8 +67,13 @@ public class DataManager {
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 3) {
-                    Subject subject = new Subject(parts[0], parts[1], Integer.parseInt(parts[2]));
-                    subjectList.add(subject);
+                    String subjectID = parts[0].trim();
+                    String title = parts[1].trim();
+                    int credit = Integer.parseInt(parts[2].trim());
+                    Subject subject = new Subject(subjectID, title, credit);
+                    if (!subjectList.contains(subject)) { // Prevent duplicates
+                        subjectList.add(subject);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -68,28 +81,60 @@ public class DataManager {
         }
 
         // Load ClassSections
+        // Format: classCode,subjectID,teacherID,credit,finished,studentIDs (separated by |)
         try (BufferedReader br = new BufferedReader(new FileReader("classes.txt"))) {
             String line;
+            Set<String> loadedClassCodes = new HashSet<>(); // To track duplicates
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                boolean finished = false;
-                if (parts.length == 5) {
-                    finished = Boolean.parseBoolean(parts[4]);
+                if (parts.length < 4) continue; // Invalid line
+                String classCode = parts[0].trim();
+                if (loadedClassCodes.contains(classCode)) {
+                    // Duplicate classCode, skip
+                    continue;
                 }
-                if (parts.length >= 4) {
-                    String classCode = parts[0];
-                    String subjectID = parts[1];
-                    String teacherID = parts[2];
-                    int credit = Integer.parseInt(parts[3]);
+                loadedClassCodes.add(classCode);
 
-                    Subject subject = findSubjectByID(subjectID);
-                    Teacher teacher = findTeacherByID(teacherID);
-                    if (subject != null && teacher != null) {
-                        ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
-                        cs.setFinished(finished);
-                        classSectionList.add(cs);
+                String subjectID = parts[1].trim();
+                String teacherID = parts[2].trim();
+                int credit = Integer.parseInt(parts[3].trim());
+                boolean finished = false;
+                String studentIDsStr = "";
+                if (parts.length >=5) {
+                    finished = Boolean.parseBoolean(parts[4].trim());
+                }
+                if (parts.length >=6) {
+                    studentIDsStr = parts[5].trim();
+                }
+
+                Subject subject = findSubjectByID(subjectID);
+                Teacher teacher = findTeacherByID(teacherID);
+                if (subject != null && teacher != null) {
+                    ClassSection cs = new ClassSection(classCode, subject, teacher, credit);
+                    cs.setFinished(finished);
+                    classSectionList.add(cs);
+                    if (!subject.getClassSections().contains(cs)) {
                         subject.addClassSection(cs);
+                    }
+                    if (!teacher.getTeachingClasses().contains(cs)) {
                         teacher.addClass(cs);
+                    }
+
+                    // Thêm sinh viên vào lớp
+                    if (!studentIDsStr.isEmpty()) {
+                        String[] studentIDs = studentIDsStr.split("\\|");
+                        for (String studentID : studentIDs) {
+                            studentID = studentID.trim();
+                            Student student = findStudentByID(studentID);
+                            if (student != null) {
+                                if (!cs.getEnrolledStudents().contains(student)) {
+                                    cs.addStudent(student);
+                                }
+                                if (!student.getEnrolledClasses().contains(cs)) {
+                                    student.addClass(cs);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -111,15 +156,25 @@ public class DataManager {
             while((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 4) {
-                    String classCode = parts[0];
-                    String sessionID = parts[1];
-                    LocalDateTime startTime = LocalDateTime.parse(parts[2], SESSION_FORMATTER);
-                    LocalDateTime endTime = LocalDateTime.parse(parts[3], SESSION_FORMATTER);
+                    String classCode = parts[0].trim();
+                    String sessionID = parts[1].trim();
+                    LocalDateTime startTime = LocalDateTime.parse(parts[2].trim(), SESSION_FORMATTER);
+                    LocalDateTime endTime = LocalDateTime.parse(parts[3].trim(), SESSION_FORMATTER);
 
                     ClassSection cs = findClassSectionByCode(classCode);
                     if (cs != null) {
-                        ClassSession session = new ClassSession(sessionID, startTime, endTime);
-                        cs.addClassSession(session);
+                        // Prevent adding duplicate ClassSession
+                        boolean exists = false;
+                        for (ClassSession existingSession : cs.getClassSessions()) {
+                            if (existingSession.getSessionID().equals(sessionID)) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        if (!exists) {
+                            ClassSession session = new ClassSession(sessionID, startTime, endTime);
+                            cs.addClassSession(session);
+                        }
                     }
                 }
             }
@@ -137,10 +192,10 @@ public class DataManager {
             while((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length == 4) {
-                    String classCode = parts[0];
-                    String sessionID = parts[1];
-                    String studentID = parts[2];
-                    boolean present = Boolean.parseBoolean(parts[3]);
+                    String classCode = parts[0].trim();
+                    String sessionID = parts[1].trim();
+                    String studentID = parts[2].trim();
+                    boolean present = Boolean.parseBoolean(parts[3].trim());
 
                     ClassSection cs = findClassSectionByCode(classCode);
                     if (cs != null) {
@@ -165,11 +220,11 @@ public class DataManager {
             while((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length == 5) {
-                    String studentID = parts[0];
-                    String classCode = parts[1];
-                    double midterm = Double.parseDouble(parts[2]);
-                    double fin = Double.parseDouble(parts[3]);
-                    boolean passed = Boolean.parseBoolean(parts[4]);
+                    String studentID = parts[0].trim();
+                    String classCode = parts[1].trim();
+                    double midterm = Double.parseDouble(parts[2].trim());
+                    double fin = Double.parseDouble(parts[3].trim());
+                    boolean passed = Boolean.parseBoolean(parts[4].trim());
 
                     Student st = findStudentByID(studentID);
                     ClassSection cs = findClassSectionByCode(classCode);
@@ -198,7 +253,7 @@ public class DataManager {
                 passed = false;
             } else {
                 if (midterm <0) midterm=0;
-                if (fin<0) fin=0;
+                if (fin <0) fin=0;
                 double finalGrade = midterm*0.3 + fin*0.7;
                 passed = finalGrade >=70;
             }
@@ -209,7 +264,7 @@ public class DataManager {
 
     public static void saveData() {
         // Save Teachers: ID,Name,Department,Email
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("teachers.txt", false))) { // Overwrite
             for (Teacher t : teacherList) {
                 bw.write(t.getID() + "," + t.getName() + "," + t.getDepartment() + "," + t.getEmail());
                 bw.newLine();
@@ -219,7 +274,7 @@ public class DataManager {
         }
 
         // Save Students: ID,Name,Age,Email,RemainingCredits
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("students.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("students.txt", false))) { // Overwrite
             for (Student s : studentList) {
                 bw.write(s.getID() + "," + s.getName() + "," + s.getAge() + "," + s.getEmail() + "," + s.getRemainingCredits());
                 bw.newLine();
@@ -229,7 +284,7 @@ public class DataManager {
         }
 
         // Save Subjects
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("subjects.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("subjects.txt", false))) { // Overwrite
             for (Subject s : subjectList) {
                 bw.write(s.getSubjectID() + "," + s.getTitle() + "," + s.getCredit());
                 bw.newLine();
@@ -238,10 +293,24 @@ public class DataManager {
             System.out.println("Không thể lưu dữ liệu môn học: " + e.getMessage());
         }
 
-        // Save ClassSections: classCode,subjectID,teacherID,credit,finished
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt"))) {
+        // Save ClassSections: classCode,subjectID,teacherID,credit,finished,studentIDs (separated by |)
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("classes.txt", false))) { // Overwrite
             for (ClassSection cs : classSectionList) {
-                bw.write(cs.getClassCode() + "," + cs.getSubject().getSubjectID() + "," + cs.getTeacher().getID() + "," + cs.getCredit() + "," + cs.isFinished());
+                StringBuilder sb = new StringBuilder();
+                sb.append(cs.getClassCode()).append(",")
+                        .append(cs.getSubject().getSubjectID()).append(",")
+                        .append(cs.getTeacher().getID()).append(",")
+                        .append(cs.getCredit()).append(",")
+                        .append(cs.isFinished()).append(",");
+
+                // Append student IDs
+                List<Student> enrolled = cs.getEnrolledStudents();
+                for (int i = 0; i < enrolled.size(); i++) {
+                    sb.append(enrolled.get(i).getID());
+                    if (i != enrolled.size() -1) sb.append("|");
+                }
+
+                bw.write(sb.toString());
                 bw.newLine();
             }
         } catch (IOException e) {
@@ -254,7 +323,7 @@ public class DataManager {
     }
 
     private static void saveClassSessions() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("class_sessions.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("class_sessions.txt", false))) { // Overwrite
             for (ClassSection cs : classSectionList) {
                 for (ClassSession session : cs.getClassSessions()) {
                     String line = cs.getClassCode() + "," + session.getSessionID() + ","
@@ -270,10 +339,10 @@ public class DataManager {
     }
 
     private static void saveAttendance() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("attendance.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("attendance.txt", false))) { // Overwrite
             for (ClassSection cs : classSectionList) {
                 for (ClassSession session : cs.getClassSessions()) {
-                    for (var entry : session.getAttendanceRecords().entrySet()) {
+                    for (Map.Entry<String, Boolean> entry : session.getAttendanceRecords().entrySet()) {
                         String studentID = entry.getKey();
                         boolean present = entry.getValue();
                         String line = cs.getClassCode() + "," + session.getSessionID() + "," + studentID + "," + present;
@@ -288,9 +357,9 @@ public class DataManager {
     }
 
     private static void saveGrades() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("grades.txt"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("grades.txt", false))) { // Overwrite
             for (Student s : studentList) {
-                for (var entry : s.getGrades().entrySet()) {
+                for (Map.Entry<String, Student.GradeInfo> entry : s.getGrades().entrySet()) {
                     String classCode = entry.getKey();
                     Student.GradeInfo info = entry.getValue();
                     String line = s.getID() + "," + classCode + "," + info.midterm + "," + info.finalExam + "," + info.passed;
